@@ -1,20 +1,13 @@
 document.addEventListener("DOMContentLoaded", () => {
 
-  // --------------------
-  // 1. ページ切替処理
-  // --------------------
   setupPageNavigation();
 
-  // Blog が初期表示ならロード
   if (document.getElementById("blog").classList.contains("active")) {
     loadMarkdown();
   }
 
-  // --------------------
-  // 2. 音楽関連 初期化
-  // --------------------
   setupPlayStation();
-  setupLowPassUI(); // ← ローパス操作 UI
+  setupLowPassUI();
 });
 
 
@@ -55,7 +48,6 @@ let masterGain = null;
 let analyser = null;
 let dataArray = null;
 
-// フィルター
 let lowPass = null;
 let highPass = null;
 
@@ -81,29 +73,22 @@ function setupAudioGraph() {
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
   }
 
-  // master
   masterGain = audioContext.createGain();
   masterGain.gain.value = 1;
 
-  // ローパス
   lowPass = audioContext.createBiquadFilter();
   lowPass.type = "lowpass";
   lowPass.frequency.value = 18000;
 
-  // ハイパス
   highPass = audioContext.createBiquadFilter();
   highPass.type = "highpass";
   highPass.frequency.value = 20;
 
-  // アナライザ
   analyser = audioContext.createAnalyser();
   analyser.fftSize = 64;
   dataArray = new Uint8Array(analyser.frequencyBinCount);
 
-  // 接続
-  //
   // source → lowPass → highPass → masterGain → analyser → speakers
-  //
   lowPass.connect(highPass);
   highPass.connect(masterGain);
   masterGain.connect(analyser);
@@ -113,7 +98,7 @@ function setupAudioGraph() {
 
 
 // ==================================================
-// 再生ボタン
+// 再生ボタン（※トグルではない）
 // ==================================================
 function setupPlayStation() {
   const playStation = document.getElementById("play-station");
@@ -165,16 +150,19 @@ function startAudio() {
   const url = audioList[Math.floor(Math.random() * audioList.length)];
   currentAudio = new Audio(url);
   currentAudio.loop = true;
+
+  // ← 重要：Audioタグの直出力を止める
+  currentAudio.muted = true;
+
   currentAudio.play();
 
   document.body.classList.add("playing");
 
   setupAudioGraph();
 
-  // Audio を Web Audio に接続
   source = audioContext.createMediaElementSource(currentAudio);
 
-  // ★ 重要：必ず lowPass に接続
+  // ★ 必ず lowPass に接続
   source.connect(lowPass);
 
   requestAnimationFrame(updateBars);
