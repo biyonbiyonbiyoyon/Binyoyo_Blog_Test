@@ -35,13 +35,11 @@ function handlePageChange(e) {
 }
 
 
-
 // ==================================================
 // Audio / Musics
 // ==================================================
 let currentAudio = null;
 let audioContext = null;
-
 let source = null;
 let masterGain = null;
 let analyser = null;
@@ -58,7 +56,6 @@ function getBars() {
 }
 
 let barBaseHeights = [];
-
 
 
 // ==================================================
@@ -82,7 +79,6 @@ function setupAudioGraph() {
 }
 
 
-
 // ==================================================
 // 再生ボタン
 // ==================================================
@@ -103,9 +99,8 @@ function setupPlayStation() {
 }
 
 
-
 // ==================================================
-// 再生開始（ランダム FX 版）
+// 再生開始（ランダム FX 版 改良版）
 // ==================================================
 async function startAudio() {
 
@@ -119,11 +114,13 @@ async function startAudio() {
   await audioContext.resume();
 
   // source（Web Audio に取り込む）
+  if (source) {
+    try { source.disconnect(); } catch {}
+  }
   source = audioContext.createMediaElementSource(currentAudio);
 
-
   // ------------------------------------------------
-  // ★ 効果ノード（強め設定）
+  // FXノード生成
   // ------------------------------------------------
   const fx = {};
 
@@ -145,59 +142,47 @@ async function startAudio() {
     curve[i] = Math.round(x * 3) / 3;
   }
   fx.bitCrusher.curve = curve;
+  fx.bitCrusher.oversample = "4x"; // 追加: 音が出るように
 
-  // 疑似ピッチ
+  // ピッチ
   fx.pitch = audioContext.createBiquadFilter();
   fx.pitch.type = "allpass";
 
-
   // ------------------------------------------------
-  // ★ ランダム接続
+  // ランダム接続（ON/OFFで制御して安定化）
   // ------------------------------------------------
   const allNodes = [fx.lowPass, fx.highPass, fx.bitCrusher, fx.pitch];
-
-  // シャッフル
-  const shuffled = shuffle(allNodes);
-
-  // 1〜3個 必ず入れる
-  const selected = shuffled.slice(0, Math.floor(Math.random() * 3) + 1);
-
-  // デバッグ：何が選ばれたか
-  console.log("FX selected:", selected.map(n => n.type || "bitcrusher"));
-
   let previous = source;
 
-  selected.forEach(node => {
-    previous.connect(node);
-    previous = node;
+  allNodes.forEach(node => {
+    if (Math.random() > 0.5) { // 50%で接続
+      previous.connect(node);
+      previous = node;
+    }
   });
 
   previous.connect(masterGain);
 
+  console.log("FX nodes connected:", allNodes.filter(n => n !== previous).map(n => n.type || "bitcrusher"));
 
   // ------------------------------------------------
-  // ★ 再生速度（Slow / Fast）
+  // 再生速度（ランダム）
   // ------------------------------------------------
   const speeds = [0.6, 0.8, 1.0, 1.2, 1.5];
-  currentAudio.playbackRate =
-    speeds[Math.floor(Math.random() * speeds.length)];
-
+  currentAudio.playbackRate = speeds[Math.floor(Math.random() * speeds.length)];
 
   // ------------------------------------------------
-  // ★ ピッチ（半音）
+  // ピッチ（半音ランダム）
   // ------------------------------------------------
-  const semitone = [-7, -5, -2, 0, 2, 5, 7][Math.floor(Math.random() * 7)];
+  const semitone = [-12, -7, -5, -2, 0, 2, 5, 7, 12][Math.floor(Math.random() * 9)];
   fx.pitch.detune.value = semitone * 100;
-
 
   // 再生
   await currentAudio.play();
 
   document.body.classList.add("playing");
-
   requestAnimationFrame(updateBars);
 }
-
 
 
 // ==================================================
@@ -210,16 +195,17 @@ function stopAudio() {
   currentAudio.pause();
   currentAudio.currentTime = 0;
 
-  if (source) {
-    try { source.disconnect(); } catch {}
-  }
+  if (source) try { source.disconnect(); } catch {}
+  if (masterGain) try { masterGain.disconnect(); } catch {}
+  if (analyser) try { analyser.disconnect(); } catch {}
 
   currentAudio = null;
   source = null;
+  masterGain = null;
+  analyser = null;
 
   document.body.classList.remove("playing");
 }
-
 
 
 // ==================================================
@@ -241,7 +227,6 @@ function updateBars() {
 
   requestAnimationFrame(updateBars);
 }
-
 
 
 // ==================================================
@@ -291,7 +276,6 @@ async function loadMarkdown() {
     container.innerHTML = `<p style="color:red">${err}</p>`;
   }
 }
-
 
 
 // ==================================================
