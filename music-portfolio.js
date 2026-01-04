@@ -76,20 +76,20 @@ function setupAudioGraph() {
   masterGain = audioContext.createGain();
   masterGain.gain.value = 1;
 
-lowPass = audioContext.createBiquadFilter();
-lowPass.type = "lowpass";
+  // --- Low Pass ---
+  lowPass = audioContext.createBiquadFilter();
+  lowPass.type = "lowpass";
 
-// ほぼ電話の帯域にする（超極端）
-lowPass.frequency.value = 400;
+  // 強く効くように（かなり極端）
+  lowPass.frequency.value = 400;
+  lowPass.Q.value = 12;
 
-// カットの鋭さ（Q を上げる）
-lowPass.Q.value = 12;
-
-
+  // --- High Pass ---
   highPass = audioContext.createBiquadFilter();
   highPass.type = "highpass";
   highPass.frequency.value = 20;
 
+  // --- Visualizer ---
   analyser = audioContext.createAnalyser();
   analyser.fftSize = 64;
   dataArray = new Uint8Array(analyser.frequencyBinCount);
@@ -151,37 +151,29 @@ function setupLowPassUI() {
 // 再生開始
 // ==================================================
 async function startAudio() {
-  console.log("context:", audioContext?.state);
-console.log("muted:", currentAudio?.muted);
-console.log("volume:", currentAudio?.volume);
   if (currentAudio) return;
 
   const url = audioList[Math.floor(Math.random() * audioList.length)];
   currentAudio = new Audio(url);
   currentAudio.loop = true;
 
-  // ← Audioタグの直接出力は完全にミュート
-  currentAudio.muted = true;
-  currentAudio.volume = 0;
+  // --- AudioContext を先に準備・再開 ---
+  setupAudioGraph();
+  await audioContext.resume();
 
-  // 再生開始
+  // Web Audio に接続
+  source = audioContext.createMediaElementSource(currentAudio);
+
+  // ★ フィルターへ接続（ここが重要）
+  source.connect(lowPass);
+
+  // ここで初めて再生
   await currentAudio.play();
 
   document.body.classList.add("playing");
 
-  // ★ AudioContext を必ず再開
-  setupAudioGraph();
-  await audioContext.resume();   // ←←← ここが最重要！！
-
-  // Web Audio に取り込む
-  source = audioContext.createMediaElementSource(currentAudio);
-
-  // フィルターへ接続
-  source.connect(lowPass);
-
   requestAnimationFrame(updateBars);
 }
-
 
 
 
@@ -195,20 +187,14 @@ function stopAudio() {
   currentAudio.currentTime = 0;
 
   if (audioContext && source) {
-    try {
-      source.disconnect();
-    } catch {}
+    try { source.disconnect(); } catch {}
   }
 
   currentAudio = null;
   source = null;
 
-  // analyser, masterGain, filter は触らない
-  // dataArray, audioContext も閉じない
-
   document.body.classList.remove("playing");
 }
-
 
 
 
