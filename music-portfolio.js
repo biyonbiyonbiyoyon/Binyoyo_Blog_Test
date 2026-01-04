@@ -89,6 +89,32 @@ function getBars() { return Array.from(document.querySelectorAll("#play-station 
 // バーの基準高さ（ランダム初期値）
 let barBaseHeights = [];
 
+// AudioContext を“準備する関数”を作る
+function setupAudioGraph() {
+
+  // 既に作成済みなら再利用
+  if (!audioContext) {
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  }
+
+  // master（最終出力用）
+  masterGain = audioContext.createGain();
+  masterGain.gain.value = 1; // まだ音量はそのまま
+
+  // 解析用（既存のバー描画で使用）
+  analyser = audioContext.createAnalyser();
+  analyser.fftSize = 64;
+  dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+  // 配線
+  //
+  // source(未接続) → master → analyser → destination
+  //
+  masterGain.connect(analyser);
+  analyser.connect(audioContext.destination);
+}
+
+
 // -------------------- 再生ボタンイベント設定 --------------------
 function setupPlayStation() {
   const playStation = document.getElementById("play-station");
@@ -133,14 +159,16 @@ function startAudio() {
   document.body.classList.add("playing"); // CSSでバー表示
 
   // Web Audio API設定（バーの音量解析用）
-  audioContext = new (window.AudioContext || window.webkitAudioContext)();
-  analyser = audioContext.createAnalyser();
-  source = audioContext.createMediaElementSource(currentAudio);
-  source.connect(analyser);
-  analyser.connect(audioContext.destination);
+ // まずは基礎グラフを準備
+setupAudioGraph();
 
-  analyser.fftSize = 64; // FFT分解数
-  dataArray = new Uint8Array(analyser.frequencyBinCount);
+// AudioElement を Web Audio に接続
+source = audioContext.createMediaElementSource(currentAudio);
+
+// 配線：
+// source → masterGain（→ analyser → destination は済） 
+source.connect(masterGain);
+
 
   // アニメーション開始
   requestAnimationFrame(updateBars);
