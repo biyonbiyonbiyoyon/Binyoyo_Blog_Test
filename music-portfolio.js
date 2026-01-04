@@ -151,6 +151,9 @@ function setupLowPassUI() {
 // 再生開始
 // ==================================================
 async function startAudio() {
+  console.log("context:", audioContext?.state);
+console.log("muted:", currentAudio?.muted);
+console.log("volume:", currentAudio?.volume);
   if (currentAudio) return;
 
   const url = audioList[Math.floor(Math.random() * audioList.length)];
