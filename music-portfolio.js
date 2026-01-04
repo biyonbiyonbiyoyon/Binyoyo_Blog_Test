@@ -197,25 +197,18 @@ function stopAudio() {
   if (audioContext && source) {
     try {
       source.disconnect();
-      analyser.disconnect();
     } catch {}
   }
 
   currentAudio = null;
   source = null;
-  analyser = null;
-  masterGain = null;
-  dataArray = null;
-  lowPass = null;
-  highPass = null;
 
-  if (audioContext) {
-    audioContext.close();
-    audioContext = null;
-  }
+  // analyser, masterGain, filter は触らない
+  // dataArray, audioContext も閉じない
 
   document.body.classList.remove("playing");
 }
+
 
 
 
