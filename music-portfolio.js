@@ -121,9 +121,10 @@ async function startAudio() {
   // source（Web Audio に取り込む）
   source = audioContext.createMediaElementSource(currentAudio);
 
-  // ------------------------------
-  // ★ 効果ノード（極端め）
-  // ------------------------------
+
+  // ------------------------------------------------
+  // ★ 効果ノード（強め設定）
+  // ------------------------------------------------
   const fx = {};
 
   // ローパス
@@ -134,36 +135,45 @@ async function startAudio() {
   // ハイパス
   fx.highPass = audioContext.createBiquadFilter();
   fx.highPass.type = "highpass";
-  fx.highPass.frequency.value = Math.random() * 5000 + 1000;
+  fx.highPass.frequency.value = Math.random() * 5000 + 200;
 
-  // ローファイ（bit crusher）
+  // ローファイ
   fx.bitCrusher = audioContext.createWaveShaper();
   const curve = new Float32Array(256);
   for (let i = 0; i < 256; i++) {
     const x = i / 255 * 2 - 1;
-    curve[i] = Math.round(x * 4) / 4;
+    curve[i] = Math.round(x * 3) / 3;
   }
   fx.bitCrusher.curve = curve;
 
-  // 疑似ピッチ（微妙な違和感）
+  // 疑似ピッチ
   fx.pitch = audioContext.createBiquadFilter();
   fx.pitch.type = "allpass";
 
+
   // ------------------------------------------------
-  // ★ ランダムで 1〜3 個 必ず入れる
+  // ★ ランダム接続
   // ------------------------------------------------
-  const nodes = [fx.lowPass, fx.highPass, fx.bitCrusher, fx.pitch];
+  const allNodes = [fx.lowPass, fx.highPass, fx.bitCrusher, fx.pitch];
+
+  // シャッフル
+  const shuffled = shuffle(allNodes);
+
+  // 1〜3個 必ず入れる
+  const selected = shuffled.slice(0, Math.floor(Math.random() * 3) + 1);
+
+  // デバッグ：何が選ばれたか
+  console.log("FX selected:", selected.map(n => n.type || "bitcrusher"));
 
   let previous = source;
 
-  shuffle(nodes)
-    .slice(0, Math.floor(Math.random() * 3) + 1)
-    .forEach(node => {
-      previous.connect(node);
-      previous = node;
-    });
+  selected.forEach(node => {
+    previous.connect(node);
+    previous = node;
+  });
 
   previous.connect(masterGain);
+
 
   // ------------------------------------------------
   // ★ 再生速度（Slow / Fast）
@@ -172,15 +182,15 @@ async function startAudio() {
   currentAudio.playbackRate =
     speeds[Math.floor(Math.random() * speeds.length)];
 
+
   // ------------------------------------------------
-  // ★ ピッチ（半音単位）
+  // ★ ピッチ（半音）
   // ------------------------------------------------
   const semitone = [-7, -5, -2, 0, 2, 5, 7][Math.floor(Math.random() * 7)];
   fx.pitch.detune.value = semitone * 100;
 
-  // ------------------------------------------------
+
   // 再生
-  // ------------------------------------------------
   await currentAudio.play();
 
   document.body.classList.add("playing");
