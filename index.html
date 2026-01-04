@@ -6,19 +6,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Hello</title>
 
-  <!-- 外部CSS読み込み -->
   <link rel="stylesheet" href="./music-portfolio.css" />
-
-  <!-- Markdownパーサー -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 
 <body>
+
   <header>
     <h1>Hello</h1>
   </header>
 
   <main class="container">
+
     <section class="grid">
       <a class="card nav" href="#" data-page="home">
         <h3>Home</h3>
@@ -34,7 +33,7 @@
       </a>
     </section>
 
-    <!-- Home -->
+    <!-- Homeページ -->
     <section id="home" class="page active">
       <h2 class="page-title">Home</h2>
       <p>
@@ -42,23 +41,18 @@
       </p>
     </section>
 
-    <!-- Blog -->
+    <!-- Blogページ -->
     <section id="blog" class="page">
       <h2 class="page-title">Blog</h2>
       <div id="blog-content"><p>読み込み中...</p></div>
     </section>
 
-    <!-- Musics -->
+    <!-- Musicsページ -->
     <section id="musics" class="page">
       <h2 class="page-title">Musics</h2>
 
-      <!-- FX ON/OFF ボタン -->
-      <div class="fx-toggle-container">
-        <button id="fx-toggle" aria-pressed="false">FX OFF</button>
-      </div>
-
-      <!-- 再生ボタン -->
-      <div id="play-station" role="button" aria-pressed="false">
+      <!-- 再生ボタン＋バーアニメーション -->
+      <div id="play-station">
         <span>PLAY</span>
         <div class="bars">
           <div class="bar"></div><div class="bar"></div><div class="bar"></div>
@@ -67,7 +61,20 @@
           <div class="bar"></div><div class="bar"></div>
         </div>
       </div>
+
+      <!-- FXトグル -->
+      <div class="fx-toggle" style="text-align:center; margin-top:1rem;">
+        <button id="fx-toggle-btn" type="button">FX OFF</button>
+      </div>
+
+      <div id="musics-content" style="display:none;">
+        <audio data-src="musics/track1.mp3"></audio>
+        <audio data-src="musics/track2.mp3"></audio>
+        <audio data-src="musics/track3.mp3"></audio>
+      </div>
+
     </section>
+
   </main>
 
   <footer>
