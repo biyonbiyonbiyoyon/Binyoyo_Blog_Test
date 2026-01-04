@@ -7,7 +7,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   setupPlayStation();
-  setupLowPassUI();
+  setupLowPassUI(); // ← UIは残すが現在はランダムFXとは連動しない
 });
 
 
@@ -65,7 +65,7 @@ let barBaseHeights = [];
 
 
 // ==================================================
-// Audio Graph 構築
+// Audio Graph（基礎構築）
 // ==================================================
 function setupAudioGraph() {
 
@@ -76,26 +76,10 @@ function setupAudioGraph() {
   masterGain = audioContext.createGain();
   masterGain.gain.value = 1;
 
-  // ローパス（初期は極端にこもる設定）
-  lowPass = audioContext.createBiquadFilter();
-  lowPass.type = "lowpass";
-  lowPass.frequency.value = 400;
-  lowPass.Q.value = 18;
-
-  // ハイパス
-  highPass = audioContext.createBiquadFilter();
-  highPass.type = "highpass";
-  highPass.frequency.value = 20;
-
-  // ビジュアライザ
   analyser = audioContext.createAnalyser();
   analyser.fftSize = 64;
   dataArray = new Uint8Array(analyser.frequencyBinCount);
 
-  // 配線
-  // source → lowPass → highPass → masterGain → analyser → speakers
-  lowPass.connect(highPass);
-  highPass.connect(masterGain);
   masterGain.connect(analyser);
   analyser.connect(audioContext.destination);
 }
@@ -103,7 +87,7 @@ function setupAudioGraph() {
 
 
 // ==================================================
-// 再生ボタン（トグルではない）
+// 再生ボタン
 // ==================================================
 function setupPlayStation() {
   const playStation = document.getElementById("play-station");
@@ -124,34 +108,25 @@ function setupPlayStation() {
 
 
 // ==================================================
-// ローパス UI
+// ローパス UI（いまは FX ランダムとは独立）
 // ==================================================
 function setupLowPassUI() {
-
   const slider = document.getElementById("lp-filter");
   const display = document.getElementById("lp-value");
 
   if (!slider || !display) return;
 
-  // 初期値を反映
   display.textContent = slider.value + " Hz";
 
   slider.addEventListener("input", () => {
-
-    if (!lowPass) return;
-
-    const v = parseFloat(slider.value);
-
-    lowPass.frequency.value = v;
-
-    display.textContent = v + " Hz";
+    display.textContent = slider.value + " Hz";
   });
 }
 
 
 
 // ==================================================
-// 再生開始（← ここが今回の修正の肝）
+// ▶️ 再生：ランダムFX
 // ==================================================
 async function startAudio() {
 
@@ -161,32 +136,79 @@ async function startAudio() {
   currentAudio = new Audio(url);
   currentAudio.loop = true;
 
-  // 1) AudioContext / graph を準備
   setupAudioGraph();
   await audioContext.resume();
 
-  // 2) UIへ現在値を反映
-  document.getElementById("lp-value").textContent =
-    lowPass.frequency.value + " Hz";
-
-  // 3) Web Audio の source を作成
   source = audioContext.createMediaElementSource(currentAudio);
 
-  // 4) source → lowPass （→以降は graph で接続済み）
-  source.connect(lowPass);
+  // ------------------------------
+  // ★ 効果ノードを全部用意
+  // ------------------------------
+  const fx = {};
 
-  // 5) 再生
+  // ローパス
+  fx.lowPass = audioContext.createBiquadFilter();
+  fx.lowPass.type = "lowpass";
+  fx.lowPass.frequency.value = 800;
+
+  // ハイパス
+  fx.highPass = audioContext.createBiquadFilter();
+  fx.highPass.type = "highpass";
+  fx.highPass.frequency.value = 300;
+
+  // ローファイ（簡易 bit crusher）
+  fx.bitCrusher = audioContext.createWaveShaper();
+  fx.bitCrusher.curve = new Float32Array(256).map((_, i) =>
+    ((i / 255) * 2 - 1) > 0 ? 0.25 : -0.25
+  );
+
+  // ピッチ（速度に依存しないっぽい揺れ表現）
+  fx.pitch = audioContext.createBiquadFilter();
+  fx.pitch.type = "allpass";
+
+  // ------------------------------
+  // ★ ランダムでチェーン構築
+  // ------------------------------
+  const chain = [source];
+
+  function maybe(node, prob = 0.5) {
+    if (Math.random() < prob) {
+      chain[chain.length - 1].connect(node);
+      chain.push(node);
+    }
+  }
+
+  maybe(fx.lowPass, 0.7);
+  maybe(fx.highPass, 0.5);
+  maybe(fx.bitCrusher, 0.5);
+  maybe(fx.pitch, 0.6);
+
+  chain[chain.length - 1].connect(masterGain);
+
+  // ------------------------------
+  // 速度ランダム
+  // ------------------------------
+  const speedOptions = [0.6, 0.8, 1.0, 1.2, 1.5];
+  currentAudio.playbackRate =
+    speedOptions[Math.floor(Math.random() * speedOptions.length)];
+
+  // ピッチ（半音単位）
+  const semitone = [-7, -5, -2, 0, 2, 5, 7][Math.floor(Math.random() * 7)];
+  fx.pitch.detune = { value: semitone * 100 };
+
+  // ------------------------------
+  // 再生開始
+  // ------------------------------
   await currentAudio.play();
 
   document.body.classList.add("playing");
-
   requestAnimationFrame(updateBars);
 }
 
 
 
 // ==================================================
-// 再生停止
+// 停止
 // ==================================================
 function stopAudio() {
 
@@ -196,9 +218,7 @@ function stopAudio() {
   currentAudio.currentTime = 0;
 
   if (source) {
-    try {
-      source.disconnect();
-    } catch {}
+    try { source.disconnect(); } catch {}
   }
 
   currentAudio = null;
