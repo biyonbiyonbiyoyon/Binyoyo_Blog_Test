@@ -68,7 +68,7 @@ function setupAudioGraph() {
   }
 
   masterGain = audioContext.createGain();
-  masterGain.gain.value = 1;
+  masterGain.gain.value = 0.7; // 音量を控えめに設定
 
   analyser = audioContext.createAnalyser();
   analyser.fftSize = 64;
@@ -100,7 +100,7 @@ function setupPlayStation() {
 
 
 // ==================================================
-// 再生開始（ランダム FX 版 改良版）
+// 再生開始（弱めFX + 音量抑制版）
 // ==================================================
 async function startAudio() {
 
@@ -113,49 +113,49 @@ async function startAudio() {
   setupAudioGraph();
   await audioContext.resume();
 
-  // source（Web Audio に取り込む）
-  if (source) {
-    try { source.disconnect(); } catch {}
-  }
+  // sourceの安全再接続
+  if (source) try { source.disconnect(); } catch {}
   source = audioContext.createMediaElementSource(currentAudio);
 
-  // ------------------------------------------------
-  // FXノード生成
-  // ------------------------------------------------
+  // ==================================================
+  // FXノード生成（控えめパラメータ）
+  // ==================================================
   const fx = {};
 
-  // ローパス
+  // Low-Pass
   fx.lowPass = audioContext.createBiquadFilter();
   fx.lowPass.type = "lowpass";
-  fx.lowPass.frequency.value = 600;
+  fx.lowPass.frequency.value = 2000 + Math.random() * 500; // ほんのり減衰
 
-  // ハイパス
+  // High-Pass
   fx.highPass = audioContext.createBiquadFilter();
   fx.highPass.type = "highpass";
-  fx.highPass.frequency.value = Math.random() * 5000 + 200;
+  fx.highPass.frequency.value = 100 + Math.random() * 900; // 低域を軽くカット
 
-  // ローファイ
+  // BitCrusher
   fx.bitCrusher = audioContext.createWaveShaper();
   const curve = new Float32Array(256);
   for (let i = 0; i < 256; i++) {
     const x = i / 255 * 2 - 1;
-    curve[i] = Math.round(x * 3) / 3;
+    curve[i] = Math.round(x * 6) / 6; // 量子化を控えめに
   }
   fx.bitCrusher.curve = curve;
-  fx.bitCrusher.oversample = "4x"; // 追加: 音が出るように
+  fx.bitCrusher.oversample = "2x";
 
-  // ピッチ
+  // Pitch
   fx.pitch = audioContext.createBiquadFilter();
   fx.pitch.type = "allpass";
+  const semitone = [-3, -2, -1, 0, 1, 2, 3][Math.floor(Math.random() * 7)];
+  fx.pitch.detune.value = semitone * 100;
 
-  // ------------------------------------------------
-  // ランダム接続（ON/OFFで制御して安定化）
-  // ------------------------------------------------
+  // ==================================================
+  // FX接続（50%ランダムON/OFF）
+  // ==================================================
   const allNodes = [fx.lowPass, fx.highPass, fx.bitCrusher, fx.pitch];
   let previous = source;
 
   allNodes.forEach(node => {
-    if (Math.random() > 0.5) { // 50%で接続
+    if (Math.random() > 0.5) {
       previous.connect(node);
       previous = node;
     }
@@ -165,19 +165,11 @@ async function startAudio() {
 
   console.log("FX nodes connected:", allNodes.filter(n => n !== previous).map(n => n.type || "bitcrusher"));
 
-  // ------------------------------------------------
-  // 再生速度（ランダム）
-  // ------------------------------------------------
-  const speeds = [0.6, 0.8, 1.0, 1.2, 1.5];
+  // 再生速度の微調整
+  const speeds = [0.95, 0.98, 1.0, 1.02, 1.05];
   currentAudio.playbackRate = speeds[Math.floor(Math.random() * speeds.length)];
 
-  // ------------------------------------------------
-  // ピッチ（半音ランダム）
-  // ------------------------------------------------
-  const semitone = [-12, -7, -5, -2, 0, 2, 5, 7, 12][Math.floor(Math.random() * 9)];
-  fx.pitch.detune.value = semitone * 100;
-
-  // 再生
+  // 再生開始
   await currentAudio.play();
 
   document.body.classList.add("playing");
