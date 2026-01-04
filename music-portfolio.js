@@ -64,8 +64,17 @@ function handlePageChange(e) {
 }
 
 // -------------------- Musics再生関連 --------------------
-let currentAudio = null; // 現在再生中のAudioオブジェクト
-let audioContext, analyser, dataArray, source;
+let currentAudio = null;
+
+// AudioContext 全体
+let audioContext = null;
+
+// Web Audio ノード
+let source = null;
+let masterGain = null;
+let analyser = null;
+let dataArray = null;
+
 
 // 音源リスト（ランダム再生）
 const audioList = [
