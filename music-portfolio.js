@@ -76,9 +76,15 @@ function setupAudioGraph() {
   masterGain = audioContext.createGain();
   masterGain.gain.value = 1;
 
-  lowPass = audioContext.createBiquadFilter();
-  lowPass.type = "lowpass";
-  lowPass.frequency.value = 18000;
+lowPass = audioContext.createBiquadFilter();
+lowPass.type = "lowpass";
+
+// ほぼ電話の帯域にする（超極端）
+lowPass.frequency.value = 400;
+
+// カットの鋭さ（Q を上げる）
+lowPass.Q.value = 12;
+
 
   highPass = audioContext.createBiquadFilter();
   highPass.type = "highpass";
