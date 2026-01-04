@@ -41,6 +41,8 @@ function handlePageChange(e) {
 let currentAudio = null;
 let audioContext = null;
 let source = null;
+let dryGain = null;
+let fxGain = null;
 let masterGain = null;
 let analyser = null;
 let dataArray = null;
@@ -59,16 +61,16 @@ let barBaseHeights = [];
 
 
 // ==================================================
-// Audio Graph（共通の終点だけ用意）
+// Audio Graph（共通終点）
 // ==================================================
 function setupAudioGraph() {
-
   if (!audioContext) {
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
   }
 
+  // マスター出力
   masterGain = audioContext.createGain();
-  masterGain.gain.value = 0.7; // 音量を控えめに設定
+  masterGain.gain.value = 0.8; // 全体音量は控えめ
 
   analyser = audioContext.createAnalyser();
   analyser.fftSize = 64;
@@ -100,7 +102,7 @@ function setupPlayStation() {
 
 
 // ==================================================
-// 再生開始（弱めFX + 音量抑制版）
+// 再生開始（BitCrusher弱 + コンプレッサー + 原音50%混合）
 // ==================================================
 async function startAudio() {
 
@@ -113,61 +115,85 @@ async function startAudio() {
   setupAudioGraph();
   await audioContext.resume();
 
-  // sourceの安全再接続
+  // source
   if (source) try { source.disconnect(); } catch {}
   source = audioContext.createMediaElementSource(currentAudio);
 
   // ==================================================
-  // FXノード生成（控えめパラメータ）
+  // Gain分け（原音 / FX）
   // ==================================================
-  const fx = {};
+  dryGain = audioContext.createGain();
+  dryGain.gain.value = 0.5; // 原音50%
+
+  fxGain = audioContext.createGain();
+  fxGain.gain.value = 0.5; // FX音50%
+
+  // ==================================================
+  // FXノード生成（控えめ）
+  // ==================================================
+  const fxNodes = [];
 
   // Low-Pass
-  fx.lowPass = audioContext.createBiquadFilter();
-  fx.lowPass.type = "lowpass";
-  fx.lowPass.frequency.value = 2000 + Math.random() * 500; // ほんのり減衰
+  const lp = audioContext.createBiquadFilter();
+  lp.type = "lowpass";
+  lp.frequency.value = 3000 + Math.random() * 300; // 微小カット
+  fxNodes.push(lp);
 
   // High-Pass
-  fx.highPass = audioContext.createBiquadFilter();
-  fx.highPass.type = "highpass";
-  fx.highPass.frequency.value = 100 + Math.random() * 900; // 低域を軽くカット
+  const hp = audioContext.createBiquadFilter();
+  hp.type = "highpass";
+  hp.frequency.value = 100 + Math.random() * 300; // 微小
+  fxNodes.push(hp);
 
   // BitCrusher
-  fx.bitCrusher = audioContext.createWaveShaper();
+  const bc = audioContext.createWaveShaper();
   const curve = new Float32Array(256);
   for (let i = 0; i < 256; i++) {
     const x = i / 255 * 2 - 1;
-    curve[i] = Math.round(x * 6) / 6; // 量子化を控えめに
+    curve[i] = Math.round(x * 16) / 16; // 弱め
   }
-  fx.bitCrusher.curve = curve;
-  fx.bitCrusher.oversample = "2x";
+  bc.curve = curve;
+  bc.oversample = "2x";
+  fxNodes.push(bc);
 
   // Pitch
-  fx.pitch = audioContext.createBiquadFilter();
-  fx.pitch.type = "allpass";
-  const semitone = [-3, -2, -1, 0, 1, 2, 3][Math.floor(Math.random() * 7)];
-  fx.pitch.detune.value = semitone * 100;
+  const pitch = audioContext.createBiquadFilter();
+  pitch.type = "allpass";
+  const semitone = [-1, 0, 1][Math.floor(Math.random() * 3)];
+  pitch.detune.value = semitone * 50; // 微小揺れ
+  fxNodes.push(pitch);
 
   // ==================================================
-  // FX接続（50%ランダムON/OFF）
+  // コンプレッサー（ピーク抑制）
   // ==================================================
-  const allNodes = [fx.lowPass, fx.highPass, fx.bitCrusher, fx.pitch];
+  const compressor = audioContext.createDynamicsCompressor();
+  compressor.threshold.setValueAtTime(-10, audioContext.currentTime);
+  compressor.knee.setValueAtTime(5, audioContext.currentTime);
+  compressor.ratio.setValueAtTime(3, audioContext.currentTime);
+  compressor.attack.setValueAtTime(0.01, audioContext.currentTime);
+  compressor.release.setValueAtTime(0.3, audioContext.currentTime);
+
+  // ==================================================
+  // 接続
+  // ==================================================
+  // 原音側
+  source.connect(dryGain);
+  dryGain.connect(masterGain);
+
+  // FX側
   let previous = source;
-
-  allNodes.forEach(node => {
-    if (Math.random() > 0.5) {
-      previous.connect(node);
-      previous = node;
-    }
+  fxNodes.forEach(node => {
+    previous.connect(node);
+    previous = node;
   });
+  previous.connect(fxGain);
+  fxGain.connect(compressor);
+  compressor.connect(masterGain);
 
-  previous.connect(masterGain);
-
-  console.log("FX nodes connected:", allNodes.filter(n => n !== previous).map(n => n.type || "bitcrusher"));
-
-  // 再生速度の微調整
-  const speeds = [0.95, 0.98, 1.0, 1.02, 1.05];
-  currentAudio.playbackRate = speeds[Math.floor(Math.random() * speeds.length)];
+  // ==================================================
+  // 再生速度固定
+  // ==================================================
+  currentAudio.playbackRate = 1.0;
 
   // 再生開始
   await currentAudio.play();
@@ -181,18 +207,19 @@ async function startAudio() {
 // 再生停止
 // ==================================================
 function stopAudio() {
-
   if (!currentAudio) return;
 
   currentAudio.pause();
   currentAudio.currentTime = 0;
 
-  if (source) try { source.disconnect(); } catch {}
-  if (masterGain) try { masterGain.disconnect(); } catch {}
-  if (analyser) try { analyser.disconnect(); } catch {}
+  [source, dryGain, fxGain, masterGain, analyser].forEach(node => {
+    if (node) try { node.disconnect(); } catch {}
+  });
 
   currentAudio = null;
   source = null;
+  dryGain = null;
+  fxGain = null;
   masterGain = null;
   analyser = null;
 
@@ -267,15 +294,4 @@ async function loadMarkdown() {
   } catch(err) {
     container.innerHTML = `<p style="color:red">${err}</p>`;
   }
-}
-
-
-// ==================================================
-// ユーティリティ（シャッフル）
-// ==================================================
-function shuffle(arr) {
-  return arr
-    .map(v => [Math.random(), v])
-    .sort((a,b)=>a[0]-b[0])
-    .map(v=>v[1]);
 }
