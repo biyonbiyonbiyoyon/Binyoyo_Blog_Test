@@ -95,6 +95,9 @@ function getBars() {
 // バーの基準高さ（初期化用）
 let barBaseHeights = [];
 
+// フィルター（順番を入れ替えられるように個別で持つ）
+let lowPass = null;
+let highPass = null;
 
 
 // ==================================================
@@ -108,25 +111,41 @@ function setupAudioGraph() {
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
   }
 
-  // master（最終出力用）
-  masterGain = audioContext.createGain();
-  masterGain.gain.value = 1; // まだ音量はそのまま
+// master（最終出力用）
+masterGain = audioContext.createGain();
+masterGain.gain.value = 1;
 
-  // 解析用（既存のバー描画で使用）
-  analyser = audioContext.createAnalyser();
-  analyser.fftSize = 64;
-  dataArray = new Uint8Array(analyser.frequencyBinCount);
+// ------------------------------
+// ローパスフィルター
+// 例：周波数より上をカット
+// ------------------------------
+lowPass = audioContext.createBiquadFilter();
+lowPass.type = "lowpass";
+lowPass.frequency.value = 18000;  // まだ軽くかける程度
 
-  // --------------------------------------
-  // Audio Graph（基礎配線）
-  //
-  // ※ ここでは「最終段」だけを準備する
-  //    source は後で startAudio() から接続する
-  //
-  //  source ──▶ masterGain ──▶ analyser ──▶ destination
-  // --------------------------------------
-  masterGain.connect(analyser);
-  analyser.connect(audioContext.destination);
+// ------------------------------
+// ハイパスフィルター
+// 例：低音をカット
+// ------------------------------
+highPass = audioContext.createBiquadFilter();
+highPass.type = "highpass";
+highPass.frequency.value = 20;    // ほぼ素通し（後で操作）
+
+// 解析用
+analyser = audioContext.createAnalyser();
+analyser.fftSize = 64;
+dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+// --------------------------------------
+// Audio Graph
+//
+// source → lowPass → highPass → masterGain → analyser → speakers
+// --------------------------------------
+lowPass.connect(highPass);
+highPass.connect(masterGain);
+masterGain.connect(analyser);
+analyser.connect(audioContext.destination);
+
 }
 
 
@@ -185,7 +204,7 @@ function startAudio() {
 
   // source → masterGain
   // （その先は setupAudioGraph() 側で接続済み）
-  source.connect(masterGain);
+  source.connect(lowPass);
 
   // アニメーション開始
   requestAnimationFrame(updateBars);
