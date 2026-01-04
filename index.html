@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hello</title>
+
+  <!-- 外部CSS読み込み（ページ全体のデザイン・レイアウト担当） -->
+  <link rel="stylesheet" href="./music-portfolio.css" />
+
+  <!-- Markdownパーサー読み込み（BlogページのMarkdownをHTMLに変換するため） -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+
+<body>
+
+  <!-- ヘッダー -->
+  <header>
+    <h1>Hello</h1>
+  </header>
+
+  <!-- メインコンテンツ -->
+  <main class="container">
+
+    <!-- ナビゲーション（クリックでページ切替） -->
+    <section class="grid">
+      <a class="card nav" href="#" data-page="home">
+        <h3>Home</h3>
+        <span>トップ</span>
+      </a>
+      <a class="card nav" href="#" data-page="blog">
+        <h3>Blog</h3>
+        <span>雑記・感想</span>
+      </a>
+      <a class="card nav" href="#" data-page="musics">
+        <h3>Musics</h3>
+        <span>音楽を置く</span>
+      </a>
+    </section>
+
+    <!-- Homeページ（初期表示ページ） -->
+    <section id="home" class="page active">
+      <h2 class="page-title">Home</h2>
+      <p>
+        <br>Twitter - <br>Soundcloud - <br>
+      </p>
+    </section>
+
+    <!-- Blogページ（Markdownレンダリング用） -->
+    <section id="blog" class="page">
+      <h2 class="page-title">Blog</h2>
+      <div id="blog-content">
+        <p>読み込み中...</p> <!-- 初期表示、後でJSでMarkdownに置換 -->
+      </div>
+    </section>
+
+    <!-- Musicsページ（音楽再生用） -->
+    <section id="musics" class="page">
+      <h2 class="page-title">Musics</h2>
+
+      <!-- 再生ボタン（クリックで音楽再生・バーアニメーション開始） -->
+      <div id="play-station">
+        <span>PLAY</span>
+        <div class="bars">
+          <!-- 音量バー（11本） -->
+          <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+          <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+          <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+          <div class="bar"></div><div class="bar"></div>
+        </div>
+      </div>
+
+      <!-- 音源リスト（非表示、JSでランダム再生用） -->
+      <div id="musics-content" style="display:none;">
+        <audio data-src="musics/track1.mp3"></audio>
+        <audio data-src="musics/track2.mp3"></audio>
+        <audio data-src="musics/track3.mp3"></audio>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- フッター -->
+  <footer>
+    © 2026 binyoyo
+  </footer>
+
+  <!-- 外部JS読み込み（ページ切替・Markdown読み込み・Musics再生制御） -->
+  <script src="./music-portfolio.js"></script>
+</body>
+</html>
