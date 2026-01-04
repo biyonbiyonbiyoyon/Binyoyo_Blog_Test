@@ -150,29 +150,35 @@ function setupLowPassUI() {
 // ==================================================
 // 再生開始
 // ==================================================
-function startAudio() {
+async function startAudio() {
   if (currentAudio) return;
 
   const url = audioList[Math.floor(Math.random() * audioList.length)];
   currentAudio = new Audio(url);
   currentAudio.loop = true;
 
-  // ← 重要：Audioタグの直出力を止める
+  // ← Audioタグの直接出力は完全にミュート
   currentAudio.muted = true;
+  currentAudio.volume = 0;
 
-  currentAudio.play();
+  // 再生開始
+  await currentAudio.play();
 
   document.body.classList.add("playing");
 
+  // ★ AudioContext を必ず再開
   setupAudioGraph();
+  await audioContext.resume();   // ←←← ここが最重要！！
 
+  // Web Audio に取り込む
   source = audioContext.createMediaElementSource(currentAudio);
 
-  // ★ 必ず lowPass に接続
+  // フィルターへ接続
   source.connect(lowPass);
 
   requestAnimationFrame(updateBars);
 }
+
 
 
 
