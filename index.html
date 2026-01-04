@@ -14,16 +14,11 @@
 </head>
 
 <body>
-
-  <!-- ヘッダー -->
   <header>
     <h1>Hello</h1>
   </header>
 
-  <!-- メインコンテンツ -->
   <main class="container">
-
-    <!-- ナビゲーション -->
     <section class="grid">
       <a class="card nav" href="#" data-page="home">
         <h3>Home</h3>
@@ -39,7 +34,7 @@
       </a>
     </section>
 
-    <!-- Homeページ -->
+    <!-- Home -->
     <section id="home" class="page active">
       <h2 class="page-title">Home</h2>
       <p>
@@ -47,53 +42,38 @@
       </p>
     </section>
 
-    <!-- Blogページ -->
+    <!-- Blog -->
     <section id="blog" class="page">
       <h2 class="page-title">Blog</h2>
-      <div id="blog-content">
-        <p>読み込み中...</p>
-      </div>
+      <div id="blog-content"><p>読み込み中...</p></div>
     </section>
 
-    <!-- Musicsページ -->
+    <!-- Musics -->
     <section id="musics" class="page">
       <h2 class="page-title">Musics</h2>
 
+      <!-- FX ON/OFF ボタン -->
+      <div class="fx-toggle-container">
+        <button id="fx-toggle" aria-pressed="false">FX OFF</button>
+      </div>
+
       <!-- 再生ボタン -->
-      <div id="play-station">
+      <div id="play-station" role="button" aria-pressed="false">
         <span>PLAY</span>
-      </div>
-
-      <!-- FXトグル -->
-      <div class="fx-toggle" style="text-align:center; margin-top:1rem;">
-        <button id="fx-toggle-btn">FX OFF</button>
-      </div>
-
-      <!-- FXコントロール（UIのみ） -->
-      <div class="fx-control">
-        <label>
-          Low-Pass
-          <input id="lp-filter" type="range" min="200" max="4000" value="400" step="10"/>
-        </label>
-        <span id="lp-value">400 Hz</span>
-      </div>
-
-      <!-- 音源リスト -->
-      <div id="musics-content" style="display:none;">
-        <audio data-src="musics/track1.mp3"></audio>
-        <audio data-src="musics/track2.mp3"></audio>
-        <audio data-src="musics/track3.mp3"></audio>
+        <div class="bars">
+          <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+          <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+          <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+          <div class="bar"></div><div class="bar"></div>
+        </div>
       </div>
     </section>
-
   </main>
 
-  <!-- フッター -->
   <footer>
     2026 binyoyo 無断転載・引用・AI利用を一切禁止します。
   </footer>
 
-  <!-- 外部JS読み込み -->
   <script src="./music-portfolio.js?v=99999"></script>
 </body>
 </html>
