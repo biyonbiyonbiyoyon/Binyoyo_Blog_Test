@@ -80,7 +80,7 @@ function setupAudioGraph() {
   lowPass = audioContext.createBiquadFilter();
   lowPass.type = "lowpass";
   lowPass.frequency.value = 400;
-  lowPass.Q.value = 12;
+  lowPass.Q.value = 18;
 
   // ハイパス
   highPass = audioContext.createBiquadFilter();
