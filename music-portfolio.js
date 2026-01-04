@@ -30,7 +30,6 @@ document.addEventListener("DOMContentLoaded", () => {
 // nav 要素のクリックイベント登録
 // ---------------------------------------
 function setupPageNavigation() {
-
   const links = document.querySelectorAll(".nav");
   if (!links.length) return;
 
@@ -63,18 +62,23 @@ function handlePageChange(e) {
   }
 }
 
-// -------------------- Musics再生関連 --------------------
+
+
+// ==================================================
+// Musics 再生まわり（Web Audio ベース）
+// ==================================================
+
+// 再生中の <audio> インスタンス
 let currentAudio = null;
 
-// AudioContext 全体
+// AudioContext（Web Audio 全体）
 let audioContext = null;
 
 // Web Audio ノード
-let source = null;
-let masterGain = null;
-let analyser = null;
+let source = null;       // AudioElement → Web Audio 変換ノード
+let masterGain = null;   // すべての最終出力（ここにエフェクトを挟んでいく）
+let analyser = null;     // バー描画用
 let dataArray = null;
-
 
 // 音源リスト（ランダム再生）
 const audioList = [
@@ -83,13 +87,20 @@ const audioList = [
   "musics/track3.mp3"
 ];
 
-// バーDOM取得（非表示でも取得できるようにする関数）
-function getBars() { return Array.from(document.querySelectorAll("#play-station .bar")); }
+// バーDOM取得（再描画ごとに取得する）
+function getBars() {
+  return Array.from(document.querySelectorAll("#play-station .bar"));
+}
 
-// バーの基準高さ（ランダム初期値）
+// バーの基準高さ（初期化用）
 let barBaseHeights = [];
 
-// AudioContext を“準備する関数”を作る
+
+
+// ==================================================
+// Audio Graph（基礎配線のみ）
+// 今後：ここにエフェクトを少しずつ挟んでいく
+// ==================================================
 function setupAudioGraph() {
 
   // 既に作成済みなら再利用
@@ -106,75 +117,85 @@ function setupAudioGraph() {
   analyser.fftSize = 64;
   dataArray = new Uint8Array(analyser.frequencyBinCount);
 
-  // 配線
+  // --------------------------------------
+  // Audio Graph（基礎配線）
   //
-  // source(未接続) → master → analyser → destination
+  // ※ ここでは「最終段」だけを準備する
+  //    source は後で startAudio() から接続する
   //
+  //  source ──▶ masterGain ──▶ analyser ──▶ destination
+  // --------------------------------------
   masterGain.connect(analyser);
   analyser.connect(audioContext.destination);
 }
 
 
-// -------------------- 再生ボタンイベント設定 --------------------
+
+// ==================================================
+// 再生ボタンのイベント登録
+// ==================================================
 function setupPlayStation() {
   const playStation = document.getElementById("play-station");
   if (!playStation) return;
 
-  // --------------------
-  // 再生開始イベントの登録
-  // mousedown と touchstart の両方で startAudio を呼ぶ
-  // ループ化することで重複コードを削減
-  // --------------------
+  // 再生開始
   ["mousedown", "touchstart"].forEach(eventType => {
     playStation.addEventListener(eventType, startAudio);
   });
 
-  // --------------------
-  // 再生停止イベントの登録
-  // mouseup, mouseleave, touchend で stopAudio を呼ぶ
-  // 同様にループ化して可読性向上
-  // --------------------
+  // 再生停止
   ["mouseup", "mouseleave", "touchend"].forEach(eventType => {
     playStation.addEventListener(eventType, stopAudio);
   });
 
-  // --------------------
-  // バーの初期ランダム高さ設定
-  // 音楽再生バーのアニメーション基準をランダムに決定
-  // --------------------
+  // バーの初期ランダム高さを設定
   const bars = getBars();
   barBaseHeights = bars.map(() => Math.random() * 15 + 3);
 }
 
-// -------------------- 再生開始 --------------------
+
+
+// ==================================================
+// 再生開始
+// ==================================================
 function startAudio() {
   if (currentAudio) return; // 二重再生防止
 
-  // 音源をランダム選択
+  // ランダムで音源を選択
   const url = audioList[Math.floor(Math.random() * audioList.length)];
   currentAudio = new Audio(url);
   currentAudio.loop = true;
   currentAudio.play();
 
-  document.body.classList.add("playing"); // CSSでバー表示
+  document.body.classList.add("playing");
 
-  // Web Audio API設定（バーの音量解析用）
- // まずは基礎グラフを準備
-setupAudioGraph();
+  // --------------------------------------
+  // Web Audio 側の準備
+  // 1) グラフ（土台）を構築
+  // 2) 再生する Audio を接続
+  // --------------------------------------
+  setupAudioGraph();
 
-// AudioElement を Web Audio に接続
-source = audioContext.createMediaElementSource(currentAudio);
+  // AudioElement → Web Audio に取り込む
+  //
+  // ※ MediaElementSource は
+  //   「同じ Audio に対して 1 回のみ」生成可能
+  //   今回は毎回新しい Audio を作っているので安全
+  source = audioContext.createMediaElementSource(currentAudio);
 
-// 配線：
-// source → masterGain（→ analyser → destination は済） 
-source.connect(masterGain);
-
+  // source → masterGain
+  // （その先は setupAudioGraph() 側で接続済み）
+  source.connect(masterGain);
 
   // アニメーション開始
   requestAnimationFrame(updateBars);
 }
 
-// -------------------- 再生停止 --------------------
+
+
+// ==================================================
+// 再生停止
+// ==================================================
 function stopAudio() {
   if (!currentAudio) return;
 
@@ -182,7 +203,7 @@ function stopAudio() {
   currentAudio.pause();
   currentAudio.currentTime = 0;
 
-  // --- Web Audio接続解除 ---
+  // --- Web Audio 接続解除 ---
   if (audioContext && source) {
     try {
       source.disconnect();
@@ -196,27 +217,29 @@ function stopAudio() {
   currentAudio = null;
   source = null;
   analyser = null;
+  masterGain = null;
   dataArray = null;
 
-  // AudioContext は都度閉じる（管理をシンプルにする）
+  // AudioContext は都度閉じる（管理をシンプルに）
   if (audioContext) {
     audioContext.close();
     audioContext = null;
   }
 
-  // --- UI更新 ---
   document.body.classList.remove("playing");
 }
 
 
-// -------------------- バー更新 --------------------
+
+// ==================================================
+// バー更新（音量解析 → 視覚化）
+// ==================================================
 function updateBars() {
   if (!currentAudio || currentAudio.paused) return;
 
   const bars = document.querySelectorAll("#play-station .bar");
   analyser.getByteFrequencyData(dataArray); // 音量データ取得
 
-  // 各バーに高さ・透明度を反映
   bars.forEach((bar, i) => {
     const value = dataArray[i % dataArray.length]; // 周波数データ
     const height = 3 + (value / 255) * 30;        // 高さ計算
@@ -224,57 +247,57 @@ function updateBars() {
     bar.style.opacity = 0.25 + (value / 255) * 0.75;
   });
 
-  requestAnimationFrame(updateBars); // ループ
+  requestAnimationFrame(updateBars);
 }
 
-// -------------------- Markdown読み込み --------------------
+
+
+// ==================================================
+// Blog（Markdown読み込み）
+// ==================================================
 async function loadMarkdown() {
   const container = document.getElementById("blog-content");
   if (!container) return;
 
   try {
+    // キャッシュ回避（更新を即反映）
     const response = await fetch("blog.md?ts=" + Date.now());
     if (!response.ok) throw new Error("Markdownを読み込めませんでした");
 
     const text = await response.text();
 
-    // ---で分割してブロック単位に表示
+    // --- で分割してブロック単位に表示
     const blocks = text.split(/^---$/m);
-    container.innerHTML = ""; // 初期コンテンツ削除
+    container.innerHTML = "";
 
     blocks.forEach(blockText => {
       if (!blockText.trim()) return;
 
-      // Markdown→HTML変換
       const html = marked.parse(blockText);
 
-      // 記事ブロック作成
       const article = document.createElement("article");
       article.classList.add("markdown-block");
 
-      // 背景画像ランダム設定
       const bgDiv = document.createElement("div");
       bgDiv.classList.add("background");
       const imgList = ["images/bg1.png","images/bg2.png","images/bg3.png","images/bg4.png"];
-      bgDiv.style.backgroundImage = `url('${imgList[Math.floor(Math.random()*imgList.length)]}')`;
+      bgDiv.style.backgroundImage =
+        `url('${imgList[Math.floor(Math.random()*imgList.length)]}')`;
 
-      // オーバーレイ（グラデーション＋光）
       const overlayDiv = document.createElement("div");
       overlayDiv.classList.add("overlay");
 
-      // コンテンツ挿入
       const contentDiv = document.createElement("div");
       contentDiv.classList.add("content");
       contentDiv.innerHTML = html;
 
-      // DOM構築
       article.appendChild(bgDiv);
       article.appendChild(overlayDiv);
       article.appendChild(contentDiv);
       container.appendChild(article);
     });
+
   } catch(err) {
-    // 読み込み失敗時
     container.innerHTML = `<p style="color:red">${err}</p>`;
   }
 }
