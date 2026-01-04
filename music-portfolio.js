@@ -73,28 +73,30 @@ function setupAudioGraph() {
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
   }
 
+  // master
   masterGain = audioContext.createGain();
   masterGain.gain.value = 1;
 
-  // --- Low Pass ---
+  // ローパス（かなり極端）
   lowPass = audioContext.createBiquadFilter();
   lowPass.type = "lowpass";
-
-  // 強く効くように（かなり極端）
   lowPass.frequency.value = 400;
   lowPass.Q.value = 12;
 
-  // --- High Pass ---
+  // ハイパス（ほぼ素通し）
   highPass = audioContext.createBiquadFilter();
   highPass.type = "highpass";
   highPass.frequency.value = 20;
 
-  // --- Visualizer ---
+  // 解析
   analyser = audioContext.createAnalyser();
   analyser.fftSize = 64;
   dataArray = new Uint8Array(analyser.frequencyBinCount);
 
+  // 配線
+  //
   // source → lowPass → highPass → masterGain → analyser → speakers
+  //
   lowPass.connect(highPass);
   highPass.connect(masterGain);
   masterGain.connect(analyser);
@@ -104,7 +106,7 @@ function setupAudioGraph() {
 
 
 // ==================================================
-// 再生ボタン（※トグルではない）
+// 再生ボタン（トグルではない）
 // ==================================================
 function setupPlayStation() {
   const playStation = document.getElementById("play-station");
@@ -137,7 +139,6 @@ function setupLowPassUI() {
   display.textContent = slider.value + " Hz";
 
   slider.addEventListener("input", () => {
-
     if (!audioContext || !lowPass) return;
 
     lowPass.frequency.value = parseFloat(slider.value);
@@ -151,23 +152,24 @@ function setupLowPassUI() {
 // 再生開始
 // ==================================================
 async function startAudio() {
+
   if (currentAudio) return;
 
   const url = audioList[Math.floor(Math.random() * audioList.length)];
   currentAudio = new Audio(url);
   currentAudio.loop = true;
 
-  // --- AudioContext を先に準備・再開 ---
+  // ---- Audio Graph を準備してから resume
   setupAudioGraph();
   await audioContext.resume();
 
-  // Web Audio に接続
+  // ---- Web Audio に取り込む
   source = audioContext.createMediaElementSource(currentAudio);
 
-  // ★ フィルターへ接続（ここが重要）
+  // source → lowPass（その先はすでに接続済み）
   source.connect(lowPass);
 
-  // ここで初めて再生
+  // ---- 再生
   await currentAudio.play();
 
   document.body.classList.add("playing");
@@ -187,12 +189,15 @@ function stopAudio() {
   currentAudio.currentTime = 0;
 
   if (audioContext && source) {
-    try { source.disconnect(); } catch {}
+    try {
+      source.disconnect();
+    } catch {}
   }
 
   currentAudio = null;
   source = null;
 
+  // AudioContext / filters / analyser は残す
   document.body.classList.remove("playing");
 }
 
