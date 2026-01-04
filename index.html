@@ -71,12 +71,28 @@
         </div>
       </div>
 
+      <div class="fx-control">
+  <label>
+    Low-Pass
+    <input
+      id="lp-filter"
+      type="range"
+      min="300"
+      max="20000"
+      value="18000"
+      step="10"
+    >
+  </label>
+  <span id="lp-value">18000 Hz</span>
+</div>
+
       <!-- 音源リスト（非表示、JSでランダム再生用） -->
       <div id="musics-content" style="display:none;">
         <audio data-src="musics/track1.mp3"></audio>
         <audio data-src="musics/track2.mp3"></audio>
         <audio data-src="musics/track3.mp3"></audio>
       </div>
+
     </section>
 
   </main>

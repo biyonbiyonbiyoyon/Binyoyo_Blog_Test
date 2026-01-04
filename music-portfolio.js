@@ -19,6 +19,8 @@ document.addEventListener("DOMContentLoaded", () => {
   // 3. 音楽再生機能の初期化
   // --------------------
   setupPlayStation();
+  setupLowPassUI();   // ← ここ追加
+
 });
 
 
@@ -170,6 +172,31 @@ function setupPlayStation() {
   // バーの初期ランダム高さを設定
   const bars = getBars();
   barBaseHeights = bars.map(() => Math.random() * 15 + 3);
+}
+
+// ==================================================
+// ローパス UI 制御
+// ==================================================
+function setupLowPassUI() {
+
+  const slider = document.getElementById("lp-filter");
+  const display = document.getElementById("lp-value");
+
+  if (!slider || !display) return;
+
+  // 初期表示
+  display.textContent = slider.value + " Hz";
+
+  slider.addEventListener("input", () => {
+
+    // AudioContext 未初期化なら何もしない
+    if (!audioContext || !lowPass) return;
+
+    // スライダーの値を反映
+    lowPass.frequency.value = parseFloat(slider.value);
+
+    display.textContent = slider.value + " Hz";
+  });
 }
 
 
