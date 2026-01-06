@@ -7,6 +7,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   setupPlayStation();
+  setupLowPassUI();
 });
 
 
@@ -35,15 +36,20 @@ function handlePageChange(e) {
 }
 
 
+
 // ==================================================
 // Audio / Musics
 // ==================================================
 let currentAudio = null;
 let audioContext = null;
+
 let source = null;
 let masterGain = null;
 let analyser = null;
 let dataArray = null;
+
+let lowPass = null;
+let highPass = null;
 
 const audioList = [
   "musics/track1.mp3",
@@ -59,7 +65,7 @@ let barBaseHeights = [];
 
 
 // ==================================================
-// Audio Graph（共通の終点だけ用意）
+// Audio Graph 構築
 // ==================================================
 function setupAudioGraph() {
 
@@ -70,17 +76,34 @@ function setupAudioGraph() {
   masterGain = audioContext.createGain();
   masterGain.gain.value = 1;
 
+  // ローパス（初期は極端にこもる設定）
+  lowPass = audioContext.createBiquadFilter();
+  lowPass.type = "lowpass";
+  lowPass.frequency.value = 400;
+  lowPass.Q.value = 18;
+
+  // ハイパス
+  highPass = audioContext.createBiquadFilter();
+  highPass.type = "highpass";
+  highPass.frequency.value = 20;
+
+  // ビジュアライザ
   analyser = audioContext.createAnalyser();
   analyser.fftSize = 64;
   dataArray = new Uint8Array(analyser.frequencyBinCount);
 
+  // 配線
+  // source → lowPass → highPass → masterGain → analyser → speakers
+  lowPass.connect(highPass);
+  highPass.connect(masterGain);
   masterGain.connect(analyser);
   analyser.connect(audioContext.destination);
 }
 
 
+
 // ==================================================
-// 再生ボタン
+// 再生ボタン（トグルではない）
 // ==================================================
 function setupPlayStation() {
   const playStation = document.getElementById("play-station");
@@ -99,8 +122,36 @@ function setupPlayStation() {
 }
 
 
+
 // ==================================================
-// 再生開始（ランダム FX 版 改良版）
+// ローパス UI
+// ==================================================
+function setupLowPassUI() {
+
+  const slider = document.getElementById("lp-filter");
+  const display = document.getElementById("lp-value");
+
+  if (!slider || !display) return;
+
+  // 初期値を反映
+  display.textContent = slider.value + " Hz";
+
+  slider.addEventListener("input", () => {
+
+    if (!lowPass) return;
+
+    const v = parseFloat(slider.value);
+
+    lowPass.frequency.value = v;
+
+    display.textContent = v + " Hz";
+  });
+}
+
+
+
+// ==================================================
+// 再生開始（← ここが今回の修正の肝）
 // ==================================================
 async function startAudio() {
 
@@ -110,79 +161,28 @@ async function startAudio() {
   currentAudio = new Audio(url);
   currentAudio.loop = true;
 
+  // 1) AudioContext / graph を準備
   setupAudioGraph();
   await audioContext.resume();
 
-  // source（Web Audio に取り込む）
-  if (source) {
-    try { source.disconnect(); } catch {}
-  }
+  // 2) UIへ現在値を反映
+  document.getElementById("lp-value").textContent =
+    lowPass.frequency.value + " Hz";
+
+  // 3) Web Audio の source を作成
   source = audioContext.createMediaElementSource(currentAudio);
 
-  // ------------------------------------------------
-  // FXノード生成
-  // ------------------------------------------------
-  const fx = {};
+  // 4) source → lowPass （→以降は graph で接続済み）
+  source.connect(lowPass);
 
-  // ローパス
-  fx.lowPass = audioContext.createBiquadFilter();
-  fx.lowPass.type = "lowpass";
-  fx.lowPass.frequency.value = 600;
-
-  // ハイパス
-  fx.highPass = audioContext.createBiquadFilter();
-  fx.highPass.type = "highpass";
-  fx.highPass.frequency.value = Math.random() * 5000 + 200;
-
-  // ローファイ
-  fx.bitCrusher = audioContext.createWaveShaper();
-  const curve = new Float32Array(256);
-  for (let i = 0; i < 256; i++) {
-    const x = i / 255 * 2 - 1;
-    curve[i] = Math.round(x * 3) / 3;
-  }
-  fx.bitCrusher.curve = curve;
-  fx.bitCrusher.oversample = "4x"; // 追加: 音が出るように
-
-  // ピッチ
-  fx.pitch = audioContext.createBiquadFilter();
-  fx.pitch.type = "allpass";
-
-  // ------------------------------------------------
-  // ランダム接続（ON/OFFで制御して安定化）
-  // ------------------------------------------------
-  const allNodes = [fx.lowPass, fx.highPass, fx.bitCrusher, fx.pitch];
-  let previous = source;
-
-  allNodes.forEach(node => {
-    if (Math.random() > 0.5) { // 50%で接続
-      previous.connect(node);
-      previous = node;
-    }
-  });
-
-  previous.connect(masterGain);
-
-  console.log("FX nodes connected:", allNodes.filter(n => n !== previous).map(n => n.type || "bitcrusher"));
-
-  // ------------------------------------------------
-  // 再生速度（ランダム）
-  // ------------------------------------------------
-  const speeds = [0.6, 0.8, 1.0, 1.2, 1.5];
-  currentAudio.playbackRate = speeds[Math.floor(Math.random() * speeds.length)];
-
-  // ------------------------------------------------
-  // ピッチ（半音ランダム）
-  // ------------------------------------------------
-  const semitone = [-12, -7, -5, -2, 0, 2, 5, 7, 12][Math.floor(Math.random() * 9)];
-  fx.pitch.detune.value = semitone * 100;
-
-  // 再生
+  // 5) 再生
   await currentAudio.play();
 
   document.body.classList.add("playing");
+
   requestAnimationFrame(updateBars);
 }
+
 
 
 // ==================================================
@@ -195,21 +195,22 @@ function stopAudio() {
   currentAudio.pause();
   currentAudio.currentTime = 0;
 
-  if (source) try { source.disconnect(); } catch {}
-  if (masterGain) try { masterGain.disconnect(); } catch {}
-  if (analyser) try { analyser.disconnect(); } catch {}
+  if (source) {
+    try {
+      source.disconnect();
+    } catch {}
+  }
 
   currentAudio = null;
   source = null;
-  masterGain = null;
-  analyser = null;
 
   document.body.classList.remove("playing");
 }
 
 
+
 // ==================================================
-// バー描画
+// ビジュアライザ
 // ==================================================
 function updateBars() {
   if (!currentAudio || currentAudio.paused) return;
@@ -227,6 +228,7 @@ function updateBars() {
 
   requestAnimationFrame(updateBars);
 }
+
 
 
 // ==================================================
@@ -275,15 +277,4 @@ async function loadMarkdown() {
   } catch(err) {
     container.innerHTML = `<p style="color:red">${err}</p>`;
   }
-}
-
-
-// ==================================================
-// ユーティリティ（シャッフル）
-// ==================================================
-function shuffle(arr) {
-  return arr
-    .map(v => [Math.random(), v])
-    .sort((a,b)=>a[0]-b[0])
-    .map(v=>v[1]);
 }
