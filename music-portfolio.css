@@ -1,6 +1,6 @@
 /* -------------------- フォント読み込み -------------------- */
 @import url('https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+Antique&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Roboto+Flex&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght,XOPQ,XTRA,YOPQ,YTDE,YTFI,YTLC,YTUC@8..144,100..1000,96,468,79,-203,738,514,712&display=swap');
 
 /* -------------------- 全体リセット -------------------- */
 html { font-size: 100%; }
@@ -8,29 +8,35 @@ html { font-size: 100%; }
 *::before,
 *::after { box-sizing: border-box; }
 
+/* -------------------- リンク・カードスタイル -------------------- */
 a { color: #38bdf8; text-decoration: underline; }
 .card { text-decoration: none; color: inherit; }
 
+/* -------------------- ボディ全体 -------------------- */
 body {
   background-color: rgb(176, 255, 231);
   color: #000000;
-  font-family: "Roboto Flex", "Zen Kaku Gothic Antique", system-ui, sans-serif;
+  font-family: "Roboto Flex", "Zen Kaku Gothic Antique", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-size: 1.5rem;
   line-height: 1.6;
   margin: 0;
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  min-height: 100vh; /* フッターを下に固定 */
 }
 
+/* -------------------- ヘッダー -------------------- */
 header { padding: 2.5rem 1.25rem; text-align: center; }
 header h1 { margin: 0 0 0.5rem; font-size: 1.75rem; }
 
+/* -------------------- ページタイトル -------------------- */
 .page-title { text-align: center; font-size: 2.2rem; margin: 1em 0; }
 
+/* -------------------- メインコンテナ -------------------- */
 .container { max-width: 60rem; margin: 0 auto; padding: 1.5rem 1rem 4rem; }
 main, section { width: 100%; margin: 0 auto; padding: 0; }
 
+/* -------------------- ナビカード -------------------- */
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(13rem, auto));
@@ -50,28 +56,77 @@ main, section { width: 100%; margin: 0 auto; padding: 0; }
 
 .card:hover {
   transform: translateY(-0.125rem);
-  box-shadow: 0 0.75rem 1.75rem rgba(0,0,0,.25);
+  box-shadow: 0 0.75rem 1.75rem rgba(0, 0, 0, .25);
 }
 
 .card h3 { margin: 0 0 0.25rem; font-size: 1.4rem; }
 .card span { font-size: 0.8rem; opacity: .65; }
 
+/* -------------------- フッター -------------------- */
 footer { text-align: center; opacity: .6; font-size: 0.8rem; padding: 1.5rem 0 2.5rem; }
 
+/* -------------------- ページ切替 -------------------- */
 .page { display: none; padding: 1.25rem 1rem; }
-.page.active { display: block; }
+.page.active { display: block; } /* activeクラスで表示切替 */
 
-.fx-control {
-  margin-top: 1rem;
-  display: flex;
-  gap: 10px;
-  align-items: center;
+/* -------------------- Markdownブロック -------------------- */
+.markdown-block {
+  position: relative;
+  border-radius: 0.6rem;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  overflow: hidden;
 }
 
-.fx-control label { font-size: 0.9rem; }
-.fx-control input[type="range"] { width: 180px; }
+.markdown-block .background {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  z-index: 0;
+}
 
-/* Musics再生ボタン */
+.markdown-block .overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  /* 背景グラデーション＋光の演出 */
+  background-image: linear-gradient(rgba(46,46,46,0.658)), radial-gradient(circle at 22% 40%, rgba(255,255,255,0.849), rgba(173,255,207,0.582), transparent 50%);
+  background-attachment: fixed;
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.markdown-block .content {
+  position: relative;
+  z-index: 2;
+  color: #ebebeb; /* テキストは前面表示 */
+}
+
+/* -------------------- Markdownテキストスタイル -------------------- */
+#blog-content h1, #blog-content h2, #blog-content h3 {
+  margin: 1rem 0;
+  font-size: 1.6rem;
+  text-align: left;
+  text-shadow: 1px 1px 2px rgba(61, 255, 158, 0.466);
+}
+
+#blog-content p,
+#blog-content li {
+  line-height: 1.9;              /* 行間を少し広く */
+  margin: 0.9rem 0;              /* 段落の間を広げる */
+  font-size: 1.05rem;            /* 少しだけ大きく */
+  text-align: left;
+  text-shadow: 1px 1px 2px rgba(61, 255, 158, 0.35);
+}
+
+#blog-content a { color: #6ab6d6; text-decoration: underline; }
+#blog-content pre { background: #1f2937; color: #e5e7eb; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; }
+#blog-content code { background: #111827; padding: 0.2rem 0.4rem; border-radius: 0.3rem; font-size: 1rem; }
+
+/* -------------------- Musics再生ボタン -------------------- */
 #play-station {
   width: 130px;
   height: 130px;
@@ -93,4 +148,49 @@ footer { text-align: center; opacity: .6; font-size: 0.8rem; padding: 1.5rem 0 2
   letter-spacing: 1.2px;
   position: absolute;
   transition: all .3s ease;
+}
+
+#play-station .bars {
+  display: flex;
+  align-items: flex-end;
+  position: absolute;
+  bottom: 50%;
+  left: 50%;
+  transform: translate(-50%, 50%);
+  opacity: 0; /* 初期非表示 */
+}
+
+#play-station .bar {
+  width: 3px;
+  margin: 0 1px;
+  background: white;
+  height: 3px;
+  border-radius: 2px;
+  transition: height 0.1s, opacity 0.1s;
+}
+
+/* -------------------- 再生中表示切替 -------------------- */
+.playing #play-station span { opacity: 0; }
+.playing #play-station .bars { opacity: 1; }
+
+/* -------------------- バーアニメーション -------------------- */
+@keyframes audio-bars {
+  0% { height: 3px; opacity: 0.25; }
+  50% { height: 20px; opacity: 0.8; }
+  100% { height: 3px; opacity: 0.25; }
+}
+
+.fx-control {
+  margin-top: 1rem;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.fx-control label {
+  font-size: 0.9rem;
+}
+
+.fx-control input[type="range"] {
+  width: 180px;
 }
