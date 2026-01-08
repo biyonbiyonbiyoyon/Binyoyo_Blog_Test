@@ -22,7 +22,7 @@ body {
   margin: 0;
   display: flex;
   flex-direction: column;
-  min-height: 100vh; /* フッターを下に固定 */
+  min-height: 100vh;
 }
 
 /* -------------------- ヘッダー -------------------- */
@@ -67,7 +67,7 @@ footer { text-align: center; opacity: .6; font-size: 0.8rem; padding: 1.5rem 0 2
 
 /* -------------------- ページ切替 -------------------- */
 .page { display: none; padding: 1.25rem 1rem; }
-.page.active { display: block; } /* activeクラスで表示切替 */
+.page.active { display: block; }
 
 /* -------------------- Markdownブロック -------------------- */
 .markdown-block {
@@ -91,7 +91,6 @@ footer { text-align: center; opacity: .6; font-size: 0.8rem; padding: 1.5rem 0 2
   inset: 0;
   z-index: 1;
   border-radius: inherit;
-  /* 背景グラデーション＋光の演出 */
   background-image: linear-gradient(rgba(46,46,46,0.658)), radial-gradient(circle at 22% 40%, rgba(255,255,255,0.849), rgba(173,255,207,0.582), transparent 50%);
   background-attachment: fixed;
   background-size: cover;
@@ -102,7 +101,7 @@ footer { text-align: center; opacity: .6; font-size: 0.8rem; padding: 1.5rem 0 2
 .markdown-block .content {
   position: relative;
   z-index: 2;
-  color: #ebebeb; /* テキストは前面表示 */
+  color: #ebebeb;
 }
 
 /* -------------------- Markdownテキストスタイル -------------------- */
@@ -115,9 +114,9 @@ footer { text-align: center; opacity: .6; font-size: 0.8rem; padding: 1.5rem 0 2
 
 #blog-content p,
 #blog-content li {
-  line-height: 1.9;              /* 行間を少し広く */
-  margin: 0.9rem 0;              /* 段落の間を広げる */
-  font-size: 1.05rem;            /* 少しだけ大きく */
+  line-height: 1.9;
+  margin: 0.9rem 0;
+  font-size: 1.05rem;
   text-align: left;
   text-shadow: 1px 1px 2px rgba(61, 255, 158, 0.35);
 }
@@ -139,7 +138,9 @@ footer { text-align: center; opacity: .6; font-size: 0.8rem; padding: 1.5rem 0 2
   justify-content: center;
   align-items: center;
   cursor: pointer;
-  transition: all .3s ease;
+
+  /* ボタン全体とテキスト選択不可 */
+  user-select: none;
 }
 
 #play-station span {
@@ -147,7 +148,9 @@ footer { text-align: center; opacity: .6; font-size: 0.8rem; padding: 1.5rem 0 2
   font-weight: 600;
   letter-spacing: 1.2px;
   position: absolute;
-  transition: all .3s ease;
+
+  /* テキスト選択不可 */
+  user-select: none;
 }
 
 #play-station .bars {
@@ -157,7 +160,7 @@ footer { text-align: center; opacity: .6; font-size: 0.8rem; padding: 1.5rem 0 2
   bottom: 50%;
   left: 50%;
   transform: translate(-50%, 50%);
-  opacity: 0; /* 初期非表示 */
+  opacity: 0;
 }
 
 #play-station .bar {
