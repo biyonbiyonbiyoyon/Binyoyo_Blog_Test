@@ -1,23 +1,15 @@
 <!DOCTYPE html>
 <html lang="ja">
-
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Hello</title>
 
-  <!-- 外部CSS読み込み（ページ全体のデザイン・レイアウト担当） -->
+  <!-- CSS -->
   <link rel="stylesheet" href="./music-portfolio.css" />
 
-  <!-- Markdownパーサー読み込み（BlogページのMarkdownをHTMLに変換するため） -->
+  <!-- Markdown -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-
-  <!-- Three.js -->
-<script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
-<script src="https://unpkg.com/three@0.160.0/examples/js/loaders/GLTFLoader.js"></script>
-
-<script src="./three-model.js"></script>
-
 </head>
 
 <body>
@@ -27,10 +19,10 @@
     <h1>Hello</h1>
   </header>
 
-  <!-- メインコンテンツ -->
+  <!-- メイン -->
   <main class="container">
 
-    <!-- ナビゲーション（クリックでページ切替） -->
+    <!-- ナビ -->
     <section class="grid">
       <a class="card nav" href="#" data-page="home">
         <h3>Home</h3>
@@ -46,7 +38,7 @@
       </a>
     </section>
 
-    <!-- Homeページ -->
+    <!-- Home -->
     <section id="home" class="page active">
       <h2 class="page-title">Home</h2>
       <p>
@@ -54,7 +46,7 @@
       </p>
     </section>
 
-    <!-- Blogページ -->
+    <!-- Blog -->
     <section id="blog" class="page">
       <h2 class="page-title">Blog</h2>
       <div id="blog-content">
@@ -62,11 +54,10 @@
       </div>
     </section>
 
-    <!-- Musicsページ -->
+    <!-- Musics -->
     <section id="musics" class="page">
       <h2 class="page-title">Musics</h2>
 
-      <!-- 再生ボタン -->
       <div id="play-station">
         <span>PLAY</span>
         <div class="bars">
@@ -76,9 +67,6 @@
           <div class="bar"></div><div class="bar"></div>
         </div>
       </div>
-
-      <!-- 音源リスト（Node.js / JSで生成・取得） -->
-      <div id="musics-content" style="display:none;"></div>
     </section>
 
   </main>
@@ -88,7 +76,21 @@
     © 2026 binyoyo
   </footer>
 
-  <!-- 外部JS読み込み -->
+  <!-- ========================= -->
+  <!-- Three.js（順番厳守） -->
+  <!-- ========================= -->
+
+  <!-- Three core -->
+  <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+
+  <!-- GLTFLoader -->
+  <script src="https://unpkg.com/three@0.160.0/examples/js/loaders/GLTFLoader.js"></script>
+
+  <!-- 3Dモデル制御 -->
+  <script src="./three-model.js"></script>
+
+  <!-- メインJS -->
   <script src="./music-portfolio.js"></script>
+
 </body>
 </html>
