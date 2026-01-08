@@ -12,9 +12,9 @@ const __dirname = path.dirname(__filename);
 // --------------------
 // 静的ファイル公開
 // --------------------
-app.use(express.static(path.join(__dirname, "public"))); // HTML, CSS, JS, その他ファイル
+app.use(express.static(path.join(__dirname, "public"))); // HTML, CSS, JS
 app.use("/musics", express.static(path.join(__dirname, "musics"))); // 音楽ファイル
-app.use("/images", express.static(path.join(__dirname, "public", "images"))); // 画像ファイル
+app.use("/images", express.static(path.join(__dirname, "images"))); // ← 修正: project直下 images
 
 // --------------------
 // 音楽一覧 API
@@ -37,14 +37,13 @@ app.get("/api/musics", (req, res) => {
 // 画像一覧 API
 // --------------------
 app.get("/api/images", (req, res) => {
-  const imagesDir = path.join(__dirname, "public", "images");
+  const imagesDir = path.join(__dirname, "images"); // ← 修正: project直下 images
 
   try {
     const files = fs
       .readdirSync(imagesDir)
       .filter(file => /\.(png|jpg|jpeg|gif)$/i.test(file));
 
-    // ブラウザで使う URL に変換
     const urls = files.map(file => `/images/${file}`);
     res.json(urls);
   } catch (err) {
