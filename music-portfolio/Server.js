@@ -15,6 +15,8 @@ const __dirname = path.dirname(__filename);
 app.use(express.static(path.join(__dirname, "public"))); // HTML, CSS, JS
 app.use("/musics", express.static(path.join(__dirname, "musics"))); // 音楽ファイル
 app.use("/images", express.static(path.join(__dirname, "images"))); // ← 修正: project直下 images
+// models フォルダ（3Dモデル用）
+app.use("/models", express.static(path.join(__dirname, "models")));
 
 // --------------------
 // 音楽一覧 API
@@ -57,3 +59,4 @@ app.get("/api/images", (req, res) => {
 app.listen(PORT, () => {
   console.log(`http://localhost:${PORT}`);
 });
+
