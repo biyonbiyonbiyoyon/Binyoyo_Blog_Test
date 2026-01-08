@@ -6,7 +6,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupPageNavigation();
 
   // --------------------
-  // 2. Blog が最初から active の場合は Markdown 読み込み
+  // 2. Blog が最初から active の場合
   // --------------------
   if (document.getElementById("blog").classList.contains("active")) {
     loadMarkdown();
@@ -18,13 +18,11 @@ document.addEventListener("DOMContentLoaded", () => {
   setupPlayStation();
 
   // --------------------
-  // 4. 画像リストを取得（ランダム背景用）
+  // 4. 背景画像リスト取得
   // --------------------
   fetch("/api/images")
     .then(res => res.json())
-    .then(list => {
-      window.imageList = list; // グローバル変数に保存
-    })
+    .then(list => window.imageList = list)
     .catch(() => window.imageList = []);
 });
 
@@ -32,64 +30,66 @@ document.addEventListener("DOMContentLoaded", () => {
 // ページ切替処理
 // ==================================================
 function setupPageNavigation() {
-  const links = document.querySelectorAll(".nav");
-  if (!links.length) return;
-  links.forEach(link => link.addEventListener("click", handlePageChange));
+  document.querySelectorAll(".nav").forEach(link => {
+    link.addEventListener("click", handlePageChange);
+  });
 }
 
 function handlePageChange(e) {
   e.preventDefault();
+
   const target = e.currentTarget.dataset.page;
-  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+
+  document.querySelectorAll(".page").forEach(p =>
+    p.classList.remove("active")
+  );
+
   document.getElementById(target).classList.add("active");
+
   if (target === "blog") loadMarkdown();
 }
 
 // ==================================================
-// Musics再生関連
+// Musics 再生関連
 // ==================================================
 let currentAudio = null;
 let audioContext, analyser, dataArray, source;
 let audioList = [];
-let barBaseHeights = [];
 
 // --------------------
 function setupPlayStation() {
   const playStation = document.getElementById("play-station");
-  if (!playStation) return;
 
-  // 音源リスト取得
+  // 音源一覧取得
   fetch("/api/musics")
     .then(res => res.json())
-    .then(list => audioList = list)
-    .catch(() => audioList = []);
+    .then(list => audioList = list);
 
-  ["mousedown", "touchstart"].forEach(eventType => {
-    playStation.addEventListener(eventType, startAudio);
-  });
+  ["mousedown", "touchstart"].forEach(ev =>
+    playStation.addEventListener(ev, startAudio)
+  );
 
-  ["mouseup", "mouseleave", "touchend"].forEach(eventType => {
-    playStation.addEventListener(eventType, stopAudio);
-  });
-
-  const bars = Array.from(document.querySelectorAll("#play-station .bar"));
-  barBaseHeights = bars.map(() => Math.random() * 15 + 3);
+  ["mouseup", "mouseleave", "touchend"].forEach(ev =>
+    playStation.addEventListener(ev, stopAudio)
+  );
 }
 
+// --------------------
 function startAudio() {
   if (currentAudio || !audioList.length) return;
 
-  // ★ ファイル名に /musics/ を付与
-  const url = "/musics/" + audioList[Math.floor(Math.random() * audioList.length)];
-  currentAudio = new Audio(url);
+  currentAudio = new Audio(
+    audioList[Math.floor(Math.random() * audioList.length)]
+  );
   currentAudio.loop = true;
   currentAudio.play();
 
   document.body.classList.add("playing");
 
-  audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  audioContext = new AudioContext();
   analyser = audioContext.createAnalyser();
   source = audioContext.createMediaElementSource(currentAudio);
+
   source.connect(analyser);
   analyser.connect(audioContext.destination);
 
@@ -99,84 +99,64 @@ function startAudio() {
   requestAnimationFrame(updateBars);
 }
 
+// --------------------
 function stopAudio() {
   if (!currentAudio) return;
+
   currentAudio.pause();
   currentAudio.currentTime = 0;
-
-  if (audioContext && source) {
-    try { source.disconnect(); analyser.disconnect(); } catch {}
-  }
-
   currentAudio = null;
-  source = null;
-  analyser = null;
-  dataArray = null;
-
-  if (audioContext) { audioContext.close(); audioContext = null; }
 
   document.body.classList.remove("playing");
 }
 
+// --------------------
 function updateBars() {
-  if (!currentAudio || currentAudio.paused) return;
-  const bars = document.querySelectorAll("#play-station .bar");
+  if (!currentAudio) return;
+
   analyser.getByteFrequencyData(dataArray);
 
-  bars.forEach((bar, i) => {
-    const value = dataArray[i % dataArray.length];
-    const height = 3 + (value / 255) * 30;
-    bar.style.height = height + "px";
-    bar.style.opacity = 0.25 + (value / 255) * 0.75;
+  document.querySelectorAll(".bar").forEach((bar, i) => {
+    const v = dataArray[i % dataArray.length];
+    bar.style.height = `${3 + v / 8}px`;
   });
 
   requestAnimationFrame(updateBars);
 }
 
 // ==================================================
-// Markdown読み込み
+// Markdown 読み込み
 // ==================================================
 async function loadMarkdown() {
   const container = document.getElementById("blog-content");
-  if (!container) return;
 
-  try {
-    const response = await fetch("blog.md?ts=" + Date.now());
-    if (!response.ok) throw new Error("Markdownを読み込めませんでした");
+  const text = await fetch("blog.md").then(r => r.text());
+  const blocks = text.split(/^---$/m);
 
-    const text = await response.text();
-    const blocks = text.split(/^---$/m);
-    container.innerHTML = "";
+  container.innerHTML = "";
 
-    blocks.forEach(blockText => {
-      if (!blockText.trim()) return;
+  blocks.forEach(block => {
+    if (!block.trim()) return;
 
-      const html = marked.parse(blockText);
-      const article = document.createElement("article");
-      article.classList.add("markdown-block");
+    const article = document.createElement("article");
+    article.classList.add("markdown-block");
 
-      // 背景画像ランダム
-      const bgDiv = document.createElement("div");
-      bgDiv.classList.add("background");
-      const imgs = window.imageList && window.imageList.length ? window.imageList : [];
-      if (imgs.length) {
-        bgDiv.style.backgroundImage = `url('${imgs[Math.floor(Math.random() * imgs.length)]}')`;
-      }
+    const bg = document.createElement("div");
+    bg.classList.add("background");
 
-      const overlayDiv = document.createElement("div");
-      overlayDiv.classList.add("overlay");
+    if (window.imageList?.length) {
+      bg.style.backgroundImage =
+        `url('${window.imageList[Math.floor(Math.random() * window.imageList.length)]}')`;
+    }
 
-      const contentDiv = document.createElement("div");
-      contentDiv.classList.add("content");
-      contentDiv.innerHTML = html;
+    const overlay = document.createElement("div");
+    overlay.classList.add("overlay");
 
-      article.appendChild(bgDiv);
-      article.appendChild(overlayDiv);
-      article.appendChild(contentDiv);
-      container.appendChild(article);
-    });
+    const content = document.createElement("div");
+    content.classList.add("content");
+    content.innerHTML = marked.parse(block);
 
-  } catch (err) {
-    container.innerHTML = `<p style="color:red">${err}</p>`;
-  }
+    article.append(bg, overlay, content);
+    container.appendChild(article);
+  });
 }

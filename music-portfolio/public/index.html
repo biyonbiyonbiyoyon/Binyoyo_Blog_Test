@@ -5,24 +5,33 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Hello</title>
 
-  <!-- CSS -->
+  <!-- =========================
+       ページ全体のスタイル
+       ========================= -->
   <link rel="stylesheet" href="./music-portfolio.css" />
 
-  <!-- Markdown -->
+  <!-- =========================
+       Markdown → HTML 変換用
+       Blogページで使用
+       ========================= -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 
 <body>
 
-  <!-- ヘッダー -->
+  <!-- =========================
+       ヘッダー
+       ========================= -->
   <header>
     <h1>Hello</h1>
   </header>
 
-  <!-- メイン -->
+  <!-- =========================
+       メインコンテンツ
+       ========================= -->
   <main class="container">
 
-    <!-- ナビ -->
+    <!-- -------- ナビゲーション -------- -->
     <section class="grid">
       <a class="card nav" href="#" data-page="home">
         <h3>Home</h3>
@@ -38,15 +47,16 @@
       </a>
     </section>
 
-    <!-- Home -->
+    <!-- -------- Home -------- -->
     <section id="home" class="page active">
       <h2 class="page-title">Home</h2>
       <p>
-        <br>Twitter - <br>Soundcloud - <br>
+        Twitter - <br>
+        Soundcloud -
       </p>
     </section>
 
-    <!-- Blog -->
+    <!-- -------- Blog -------- -->
     <section id="blog" class="page">
       <h2 class="page-title">Blog</h2>
       <div id="blog-content">
@@ -54,10 +64,11 @@
       </div>
     </section>
 
-    <!-- Musics -->
+    <!-- -------- Musics -------- -->
     <section id="musics" class="page">
       <h2 class="page-title">Musics</h2>
 
+      <!-- 再生ステーション -->
       <div id="play-station">
         <span>PLAY</span>
         <div class="bars">
@@ -71,25 +82,23 @@
 
   </main>
 
-  <!-- フッター -->
+  <!-- =========================
+       フッター
+       ========================= -->
   <footer>
     © 2026 binyoyo
   </footer>
 
-  <!-- ========================= -->
-  <!-- Three.js（順番厳守） -->
-  <!-- ========================= -->
+  <!-- =========================
+       3Dモデル制御（ES Modules）
+       ※ Three.js / GLTFLoader を内部で import
+       ========================= -->
+  <script type="module" src="./three-model.js"></script>
 
-  <!-- Three core -->
-  <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
-
-  <!-- GLTFLoader -->
-  <script src="https://unpkg.com/three@0.160.0/examples/js/loaders/GLTFLoader.js"></script>
-
-  <!-- 3Dモデル制御 -->
-  <script src="./three-model.js"></script>
-
-  <!-- メインJS -->
+  <!-- =========================
+       メイン制御JS
+       ページ切替 / 音楽 / Blog
+       ========================= -->
   <script src="./music-portfolio.js"></script>
 
 </body>
