@@ -4,8 +4,10 @@
 
 let scene, camera, renderer, model;
 
-init();
-animate();
+document.addEventListener("DOMContentLoaded", () => {
+  init();
+  animate();
+});
 
 function init() {
   scene = new THREE.Scene();
@@ -28,6 +30,7 @@ function init() {
   renderer.domElement.style.bottom = "20px";
   renderer.domElement.style.zIndex = "10";
 
+  // ✅ ここで body は確実に存在する
   document.body.appendChild(renderer.domElement);
 
   // ライト
@@ -41,10 +44,14 @@ function init() {
   // モデル読み込み
   const loader = new THREE.GLTFLoader();
   loader.load(
-    "/models/music_olb.glb", // ← ファイル名を変更
+    "/models/あなたのモデル名.glb", // ←実ファイル名
     (gltf) => {
       model = gltf.scene;
       scene.add(model);
+    },
+    undefined,
+    (err) => {
+      console.error("GLB load error:", err);
     }
   );
 }
@@ -53,7 +60,7 @@ function animate() {
   requestAnimationFrame(animate);
 
   if (model) {
-    model.rotation.y += 0.005; // 仮回転
+    model.rotation.y += 0.005;
   }
 
   renderer.render(scene, camera);
