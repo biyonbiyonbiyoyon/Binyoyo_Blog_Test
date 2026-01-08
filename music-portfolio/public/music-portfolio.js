@@ -78,7 +78,9 @@ function setupPlayStation() {
 
 function startAudio() {
   if (currentAudio || !audioList.length) return;
-  const url = audioList[Math.floor(Math.random() * audioList.length)];
+
+  // ★ ファイル名に /musics/ を付与
+  const url = "/musics/" + audioList[Math.floor(Math.random() * audioList.length)];
   currentAudio = new Audio(url);
   currentAudio.loop = true;
   currentAudio.play();
