@@ -1,239 +1,203 @@
 document.addEventListener("DOMContentLoaded", () => {
 
+  // --------------------
+  // 1. ページ切替処理の初期化
+  //   - ここで nav のクリックイベントをまとめて登録
+  //   - 画面表示の切替は handlePageChange() に委譲
+  // --------------------
   setupPageNavigation();
 
+  // --------------------
+  // 2. Blog が最初から active の場合は Markdown 読み込み
+  //   - Top 以外から開かれたケースでも安全
+  // --------------------
   if (document.getElementById("blog").classList.contains("active")) {
     loadMarkdown();
   }
 
+  // --------------------
+  // 3. 音楽再生機能の初期化
+  // --------------------
   setupPlayStation();
-  setupLowPassUI();
 });
 
 
 // ==================================================
-// ページ切替
+// ページ切替処理
 // ==================================================
+
+// ---------------------------------------
+// nav 要素のクリックイベント登録
+// ---------------------------------------
 function setupPageNavigation() {
+
   const links = document.querySelectorAll(".nav");
   if (!links.length) return;
 
-  links.forEach(link => link.addEventListener("click", handlePageChange));
+  links.forEach(link => {
+    link.addEventListener("click", handlePageChange);
+  });
 }
 
+
+// ---------------------------------------
+// 実際のページ切替ロジック
+// ---------------------------------------
 function handlePageChange(e) {
   e.preventDefault();
 
+  // クリックされた nav の data-page を参照
   const target = e.currentTarget.dataset.page;
 
+  // すべて非表示
   document.querySelectorAll(".page").forEach(p =>
     p.classList.remove("active")
   );
 
+  // 対象のみ表示
   document.getElementById(target).classList.add("active");
 
-  if (target === "blog") loadMarkdown();
+  // Blog の場合だけ Markdown 読み込み
+  if (target === "blog") {
+    loadMarkdown();
+  }
 }
 
+// -------------------- Musics再生関連 --------------------
+let currentAudio = null; // 現在再生中のAudioオブジェクト
+let audioContext, analyser, dataArray, source;
 
-
-// ==================================================
-// Audio / Musics
-// ==================================================
-let currentAudio = null;
-let audioContext = null;
-
-let source = null;
-let masterGain = null;
-let analyser = null;
-let dataArray = null;
-
-let lowPass = null;
-let highPass = null;
-
+// 音源リスト（ランダム再生）
 const audioList = [
   "musics/track1.mp3",
   "musics/track2.mp3",
-  "musics/track3.mp3"
+  "musics/track3.mp3",
+  "musics/track4.mp3",
+  "musics/track5.mp3",
+  "musics/track6.mp3",
+  "musics/track7.mp3",
+  "musics/track8.mp3",
+  "musics/track9.mp3",
+  "musics/track10.mp3",
 ];
 
-function getBars() {
-  return Array.from(document.querySelectorAll("#play-station .bar"));
-}
+// バーDOM取得（非表示でも取得できるようにする関数）
+function getBars() { return Array.from(document.querySelectorAll("#play-station .bar")); }
 
+// バーの基準高さ（ランダム初期値）
 let barBaseHeights = [];
 
-
-// ==================================================
-// Audio Graph 構築
-// ==================================================
-function setupAudioGraph() {
-
-  if (!audioContext) {
-    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-  }
-
-  masterGain = audioContext.createGain();
-  masterGain.gain.value = 1;
-
-  // ローパス（初期は極端にこもる設定）
-  lowPass = audioContext.createBiquadFilter();
-  lowPass.type = "lowpass";
-  lowPass.frequency.value = 400;
-  lowPass.Q.value = 18;
-
-  // ハイパス
-  highPass = audioContext.createBiquadFilter();
-  highPass.type = "highpass";
-  highPass.frequency.value = 20;
-
-  // ビジュアライザ
-  analyser = audioContext.createAnalyser();
-  analyser.fftSize = 64;
-  dataArray = new Uint8Array(analyser.frequencyBinCount);
-
-  // 配線
-  // source → lowPass → highPass → masterGain → analyser → speakers
-  lowPass.connect(highPass);
-  highPass.connect(masterGain);
-  masterGain.connect(analyser);
-  analyser.connect(audioContext.destination);
-}
-
-
-
-// ==================================================
-// 再生ボタン（トグルではない）
-// ==================================================
+// -------------------- 再生ボタンイベント設定 --------------------
 function setupPlayStation() {
   const playStation = document.getElementById("play-station");
   if (!playStation) return;
 
-  ["mousedown", "touchstart"].forEach(ev =>
-    playStation.addEventListener(ev, startAudio)
-  );
+  // --------------------
+  // 再生開始イベントの登録
+  // mousedown と touchstart の両方で startAudio を呼ぶ
+  // ループ化することで重複コードを削減
+  // --------------------
+  ["mousedown", "touchstart"].forEach(eventType => {
+    playStation.addEventListener(eventType, startAudio);
+  });
 
-  ["mouseup", "mouseleave", "touchend"].forEach(ev =>
-    playStation.addEventListener(ev, stopAudio)
-  );
+  // --------------------
+  // 再生停止イベントの登録
+  // mouseup, mouseleave, touchend で stopAudio を呼ぶ
+  // 同様にループ化して可読性向上
+  // --------------------
+  ["mouseup", "mouseleave", "touchend"].forEach(eventType => {
+    playStation.addEventListener(eventType, stopAudio);
+  });
 
+  // --------------------
+  // バーの初期ランダム高さ設定
+  // 音楽再生バーのアニメーション基準をランダムに決定
+  // --------------------
   const bars = getBars();
   barBaseHeights = bars.map(() => Math.random() * 15 + 3);
 }
 
+// -------------------- 再生開始 --------------------
+function startAudio() {
+  if (currentAudio) return; // 二重再生防止
 
-
-// ==================================================
-// ローパス UI
-// ==================================================
-function setupLowPassUI() {
-
-  const slider = document.getElementById("lp-filter");
-  const display = document.getElementById("lp-value");
-
-  if (!slider || !display) return;
-
-  // 初期値を反映
-  display.textContent = slider.value + " Hz";
-
-  slider.addEventListener("input", () => {
-
-    if (!lowPass) return;
-
-    const v = parseFloat(slider.value);
-
-    lowPass.frequency.value = v;
-
-    display.textContent = v + " Hz";
-  });
-}
-
-
-
-// ==================================================
-// 再生開始（← ここが今回の修正の肝）
-// ==================================================
-async function startAudio() {
-
-  if (currentAudio) return;
-
+  // 音源をランダム選択
   const url = audioList[Math.floor(Math.random() * audioList.length)];
   currentAudio = new Audio(url);
   currentAudio.loop = true;
+  currentAudio.play();
 
-  // 1) AudioContext / graph を準備
-  setupAudioGraph();
-  await audioContext.resume();
+  document.body.classList.add("playing"); // CSSでバー表示
 
-  // 2) UIへ現在値を反映
-  document.getElementById("lp-value").textContent =
-    lowPass.frequency.value + " Hz";
-
-  // 3) Web Audio の source を作成
+  // Web Audio API設定（バーの音量解析用）
+  audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  analyser = audioContext.createAnalyser();
   source = audioContext.createMediaElementSource(currentAudio);
+  source.connect(analyser);
+  analyser.connect(audioContext.destination);
 
-  // 4) source → lowPass （→以降は graph で接続済み）
-  source.connect(lowPass);
+  analyser.fftSize = 64; // FFT分解数
+  dataArray = new Uint8Array(analyser.frequencyBinCount);
 
-  // 5) 再生
-  await currentAudio.play();
-
-  document.body.classList.add("playing");
-
+  // アニメーション開始
   requestAnimationFrame(updateBars);
 }
 
-
-
-// ==================================================
-// 再生停止
-// ==================================================
+// -------------------- 再生停止 --------------------
 function stopAudio() {
-
   if (!currentAudio) return;
 
+  // --- 再生停止 ---
   currentAudio.pause();
   currentAudio.currentTime = 0;
 
-  if (source) {
+  // --- Web Audio接続解除 ---
+  if (audioContext && source) {
     try {
       source.disconnect();
-    } catch {}
+      analyser.disconnect();
+    } catch (e) {
+      // 既に切断済みでもエラーにしない
+    }
   }
 
+  // --- 状態を完全リセット ---
   currentAudio = null;
   source = null;
+  analyser = null;
+  dataArray = null;
 
+  // AudioContext は都度閉じる（管理をシンプルにする）
+  if (audioContext) {
+    audioContext.close();
+    audioContext = null;
+  }
+
+  // --- UI更新 ---
   document.body.classList.remove("playing");
 }
 
 
-
-// ==================================================
-// ビジュアライザ
-// ==================================================
+// -------------------- バー更新 --------------------
 function updateBars() {
   if (!currentAudio || currentAudio.paused) return;
 
   const bars = document.querySelectorAll("#play-station .bar");
-  analyser.getByteFrequencyData(dataArray);
+  analyser.getByteFrequencyData(dataArray); // 音量データ取得
 
+  // 各バーに高さ・透明度を反映
   bars.forEach((bar, i) => {
-    const value = dataArray[i % dataArray.length];
-    const height = 3 + (value / 255) * 30;
-
+    const value = dataArray[i % dataArray.length]; // 周波数データ
+    const height = 3 + (value / 255) * 30;        // 高さ計算
     bar.style.height = height + "px";
     bar.style.opacity = 0.25 + (value / 255) * 0.75;
   });
 
-  requestAnimationFrame(updateBars);
+  requestAnimationFrame(updateBars); // ループ
 }
 
-
-
-// ==================================================
-// Blog
-// ==================================================
+// -------------------- Markdown読み込み --------------------
 async function loadMarkdown() {
   const container = document.getElementById("blog-content");
   if (!container) return;
@@ -243,38 +207,44 @@ async function loadMarkdown() {
     if (!response.ok) throw new Error("Markdownを読み込めませんでした");
 
     const text = await response.text();
-    const blocks = text.split(/^---$/m);
 
-    container.innerHTML = "";
+    // ---で分割してブロック単位に表示
+    const blocks = text.split(/^---$/m);
+    container.innerHTML = ""; // 初期コンテンツ削除
 
     blocks.forEach(blockText => {
       if (!blockText.trim()) return;
 
+      // Markdown→HTML変換
       const html = marked.parse(blockText);
 
+      // 記事ブロック作成
       const article = document.createElement("article");
       article.classList.add("markdown-block");
 
+      // 背景画像ランダム設定
       const bgDiv = document.createElement("div");
       bgDiv.classList.add("background");
       const imgList = ["images/bg1.png","images/bg2.png","images/bg3.png","images/bg4.png"];
-      bgDiv.style.backgroundImage =
-        `url('${imgList[Math.floor(Math.random()*imgList.length)]}')`;
+      bgDiv.style.backgroundImage = `url('${imgList[Math.floor(Math.random()*imgList.length)]}')`;
 
+      // オーバーレイ（グラデーション＋光）
       const overlayDiv = document.createElement("div");
       overlayDiv.classList.add("overlay");
 
+      // コンテンツ挿入
       const contentDiv = document.createElement("div");
       contentDiv.classList.add("content");
       contentDiv.innerHTML = html;
 
+      // DOM構築
       article.appendChild(bgDiv);
       article.appendChild(overlayDiv);
       article.appendChild(contentDiv);
       container.appendChild(article);
     });
-
   } catch(err) {
+    // 読み込み失敗時
     container.innerHTML = `<p style="color:red">${err}</p>`;
   }
 }

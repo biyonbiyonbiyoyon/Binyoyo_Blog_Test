@@ -179,18 +179,3 @@ footer { text-align: center; opacity: .6; font-size: 0.8rem; padding: 1.5rem 0 2
   50% { height: 20px; opacity: 0.8; }
   100% { height: 3px; opacity: 0.25; }
 }
-
-.fx-control {
-  margin-top: 1rem;
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
-
-.fx-control label {
-  font-size: 0.9rem;
-}
-
-.fx-control input[type="range"] {
-  width: 180px;
-}
