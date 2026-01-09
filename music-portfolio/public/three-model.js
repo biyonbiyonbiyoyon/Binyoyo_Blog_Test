@@ -1,7 +1,17 @@
 // ==============================
 // Three.js 最小構成 3Dモデル表示
+// ES Modules 対応版
 // ==============================
 
+// ------------------------------
+// Three.js / GLTFLoader を import
+// ------------------------------
+import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
+import { GLTFLoader } from "https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
+
+// ------------------------------
+// DOMContentLoaded
+// ------------------------------
 window.addEventListener("DOMContentLoaded", init);
 
 function init() {
@@ -13,10 +23,13 @@ function init() {
   if (!container) return;
 
   // --------------------
-  // Scene / Camera / Renderer
+  // Scene
   // --------------------
   const scene = new THREE.Scene();
 
+  // --------------------
+  // Camera
+  // --------------------
   const camera = new THREE.PerspectiveCamera(
     45,
     container.clientWidth / container.clientHeight,
@@ -25,6 +38,9 @@ function init() {
   );
   camera.position.set(0, 1.2, 3);
 
+  // --------------------
+  // Renderer
+  // --------------------
   const renderer = new THREE.WebGLRenderer({
     alpha: true,
     antialias: true
@@ -32,7 +48,6 @@ function init() {
 
   renderer.setSize(container.clientWidth, container.clientHeight);
   renderer.setPixelRatio(window.devicePixelRatio);
-
   container.appendChild(renderer.domElement);
 
   // --------------------
@@ -47,10 +62,10 @@ function init() {
   // --------------------
   // GLTF Loader
   // --------------------
-  const loader = new THREE.GLTFLoader();
+  const loader = new GLTFLoader();
 
   loader.load(
-    "/models/music_olb.glb",   // ← あなたの glb 名に合わせて変更
+    "/models/music_olb.glb",
     (gltf) => {
       const model = gltf.scene;
       scene.add(model);
@@ -81,6 +96,7 @@ function init() {
   window.addEventListener("resize", () => {
     const w = container.clientWidth;
     const h = container.clientHeight;
+
     renderer.setSize(w, h);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
