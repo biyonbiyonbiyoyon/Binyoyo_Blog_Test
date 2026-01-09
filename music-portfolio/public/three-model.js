@@ -1,35 +1,21 @@
 // ==============================
-// Three.js 最小構成 3Dモデル表示
-// ES Modules 対応版
+// Three.js 最小構成 3Dモデル表示 (ES Modules対応)
 // ==============================
 
-// ------------------------------
-// Three.js / GLTFLoader を import
-// ------------------------------
 import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 import { GLTFLoader } from "https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
 
-// ------------------------------
-// DOMContentLoaded
-// ------------------------------
 window.addEventListener("DOMContentLoaded", init);
 
 function init() {
 
-  // --------------------
-  // DOM 取得
-  // --------------------
   const container = document.getElementById("model-container");
   if (!container) return;
 
-  // --------------------
   // Scene
-  // --------------------
   const scene = new THREE.Scene();
 
-  // --------------------
   // Camera
-  // --------------------
   const camera = new THREE.PerspectiveCamera(
     45,
     container.clientWidth / container.clientHeight,
@@ -38,32 +24,20 @@ function init() {
   );
   camera.position.set(0, 1.2, 3);
 
-  // --------------------
   // Renderer
-  // --------------------
-  const renderer = new THREE.WebGLRenderer({
-    alpha: true,
-    antialias: true
-  });
-
+  const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
   renderer.setSize(container.clientWidth, container.clientHeight);
   renderer.setPixelRatio(window.devicePixelRatio);
   container.appendChild(renderer.domElement);
 
-  // --------------------
-  // Light
-  // --------------------
+  // Lights
   const light = new THREE.DirectionalLight(0xffffff, 1.2);
   light.position.set(2, 4, 3);
   scene.add(light);
-
   scene.add(new THREE.AmbientLight(0xffffff, 0.4));
 
-  // --------------------
   // GLTF Loader
-  // --------------------
   const loader = new GLTFLoader();
-
   loader.load(
     "/models/music_olb.glb",
     (gltf) => {
@@ -81,22 +55,17 @@ function init() {
     }
   );
 
-  // --------------------
   // Animation Loop
-  // --------------------
   function animate(model) {
     requestAnimationFrame(() => animate(model));
     model.rotation.y += 0.005;
     renderer.render(scene, camera);
   }
 
-  // --------------------
-  // Resize
-  // --------------------
+  // Window Resize
   window.addEventListener("resize", () => {
     const w = container.clientWidth;
     const h = container.clientHeight;
-
     renderer.setSize(w, h);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
