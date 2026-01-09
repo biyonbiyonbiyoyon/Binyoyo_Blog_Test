@@ -59,16 +59,26 @@ let audioList = [];
 // --------------------
 function setupPlayStation() {
   const playStation = document.getElementById("play-station");
+  if (!playStation) return;
 
+  // --------------------
   // 音源一覧取得
+  // --------------------
   fetch("/api/musics")
     .then(res => res.json())
-    .then(list => audioList = list);
+    .then(list => audioList = list)
+    .catch(() => audioList = []);
 
+  // --------------------
+  // 再生開始
+  // --------------------
   ["mousedown", "touchstart"].forEach(ev =>
     playStation.addEventListener(ev, startAudio)
   );
 
+  // --------------------
+  // 再生停止
+  // --------------------
   ["mouseup", "mouseleave", "touchend"].forEach(ev =>
     playStation.addEventListener(ev, stopAudio)
   );
@@ -78,15 +88,18 @@ function setupPlayStation() {
 function startAudio() {
   if (currentAudio || !audioList.length) return;
 
-  currentAudio = new Audio(
-    audioList[Math.floor(Math.random() * audioList.length)]
-  );
+  // ✅【ここだけ修正】
+  // ファイル名に必ず /musics/ を付与
+  const file = audioList[Math.floor(Math.random() * audioList.length)];
+  const url = "/musics/" + file;
+
+  currentAudio = new Audio(url);
   currentAudio.loop = true;
   currentAudio.play();
 
   document.body.classList.add("playing");
 
-  audioContext = new AudioContext();
+  audioContext = new (window.AudioContext || window.webkitAudioContext)();
   analyser = audioContext.createAnalyser();
   source = audioContext.createMediaElementSource(currentAudio);
 
@@ -105,20 +118,37 @@ function stopAudio() {
 
   currentAudio.pause();
   currentAudio.currentTime = 0;
+
+  if (audioContext && source) {
+    try {
+      source.disconnect();
+      analyser.disconnect();
+    } catch {}
+  }
+
   currentAudio = null;
+  source = null;
+  analyser = null;
+  dataArray = null;
+
+  if (audioContext) {
+    audioContext.close();
+    audioContext = null;
+  }
 
   document.body.classList.remove("playing");
 }
 
 // --------------------
 function updateBars() {
-  if (!currentAudio) return;
+  if (!currentAudio || currentAudio.paused) return;
 
   analyser.getByteFrequencyData(dataArray);
 
   document.querySelectorAll(".bar").forEach((bar, i) => {
     const v = dataArray[i % dataArray.length];
     bar.style.height = `${3 + v / 8}px`;
+    bar.style.opacity = 0.25 + (v / 255) * 0.75;
   });
 
   requestAnimationFrame(updateBars);
@@ -129,34 +159,41 @@ function updateBars() {
 // ==================================================
 async function loadMarkdown() {
   const container = document.getElementById("blog-content");
+  if (!container) return;
 
-  const text = await fetch("blog.md").then(r => r.text());
-  const blocks = text.split(/^---$/m);
+  try {
+    const response = await fetch("blog.md?ts=" + Date.now());
+    const text = await response.text();
+    const blocks = text.split(/^---$/m);
 
-  container.innerHTML = "";
+    container.innerHTML = "";
 
-  blocks.forEach(block => {
-    if (!block.trim()) return;
+    blocks.forEach(block => {
+      if (!block.trim()) return;
 
-    const article = document.createElement("article");
-    article.classList.add("markdown-block");
+      const article = document.createElement("article");
+      article.classList.add("markdown-block");
 
-    const bg = document.createElement("div");
-    bg.classList.add("background");
+      const bg = document.createElement("div");
+      bg.classList.add("background");
 
-    if (window.imageList?.length) {
-      bg.style.backgroundImage =
-        `url('${window.imageList[Math.floor(Math.random() * window.imageList.length)]}')`;
-    }
+      if (window.imageList?.length) {
+        bg.style.backgroundImage =
+          `url('${window.imageList[Math.floor(Math.random() * window.imageList.length)]}')`;
+      }
 
-    const overlay = document.createElement("div");
-    overlay.classList.add("overlay");
+      const overlay = document.createElement("div");
+      overlay.classList.add("overlay");
 
-    const content = document.createElement("div");
-    content.classList.add("content");
-    content.innerHTML = marked.parse(block);
+      const content = document.createElement("div");
+      content.classList.add("content");
+      content.innerHTML = marked.parse(block);
 
-    article.append(bg, overlay, content);
-    container.appendChild(article);
-  });
+      article.append(bg, overlay, content);
+      container.appendChild(article);
+    });
+
+  } catch (err) {
+    container.innerHTML = `<p style="color:red">${err}</p>`;
+  }
 }
